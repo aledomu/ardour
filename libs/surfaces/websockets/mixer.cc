@@ -309,7 +309,7 @@ ArdourMixer::start ()
 int
 ArdourMixer::stop ()
 {
-	Glib::Threads::Mutex::Lock lock (mixer ().mutex ());
+	std::lock_guard<std::mutex> lock (mixer ().mutex ());
 	_strips.clear ();
 	return 0;
 }
@@ -334,11 +334,11 @@ ArdourMixer::strip (uint32_t strip_id)
 void
 ArdourMixer::on_drop_strip (uint32_t strip_id)
 {
-	Glib::Threads::Mutex::Lock lock (_mutex);
+	std::lock_guard<std::mutex> lock (_mutex);
 	_strips.erase (strip_id);
 }
 
-Glib::Threads::Mutex&
+std::mutex&
 ArdourMixer::mutex ()
 {
 	return _mutex;

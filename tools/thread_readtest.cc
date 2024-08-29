@@ -30,9 +30,9 @@ usage ()
 	fprintf (stderr, "thread_readtest [ -b BLOCKSIZE ] [ -l FILELIMIT] [ -n NTHREADS ] [ -D ] [ -R ] [ -M ] filename-template\n");
 }
 
-Glib::Threads::Cond pool_run;
-Glib::Threads::Cond pool_done;
-Glib::Threads::Mutex pool_lock;
+std::condition_variable pool_run;
+std::condition_variable pool_done;
+std::mutex pool_lock;
 std::list<int> pool_work;
 std::vector<Glib::Threads::Thread*> thread_pool;
 int pool_errors = 0;
@@ -47,10 +47,10 @@ struct ThreadData {
 void
 thread_pool_work (ThreadData* td)
 {
-	Glib::Threads::Mutex::Lock lm (pool_lock);
+	std::unique_lock<std::mutex> lm (pool_lock);
 
 	while (thread_pool_lives) {
-		pool_run.wait (pool_lock);
+		pool_run.wait (lm);
 
 		if (!thread_pool_lives) {
 			return;
@@ -65,7 +65,7 @@ thread_pool_work (ThreadData* td)
 
 			/* release the lock while we do work */
 
-			lm.release ();
+			lm.unlock ();
 
 			/* do the work */
 
@@ -89,12 +89,12 @@ thread_pool_work (ThreadData* td)
 			 * things and possibly wake the master.
 			 */
 
-			lm.acquire ();
+			lm.lock ();
 			pool_errors += err;
 
 			if (pool_work.empty()) {
 				/* work is finished, tell the master */
-				pool_done.signal ();
+				pool_done.notify_one ();
 			}
 		}
 
@@ -107,10 +107,10 @@ void
 stop_thread_pool ()
 {
 	{
-		Glib::Threads::Mutex::Lock lm (pool_lock);
+		std::lock_guard<std::mutex> lm (pool_lock);
 		thread_pool_lives = false;
 		pool_work.clear ();
-		pool_run.broadcast ();
+		pool_run.notify_all ();
 	}
 
 	/* XXX wait for each thread to finish */
@@ -132,7 +132,7 @@ build_thread_pool (int nthreads, size_t block_size)
 int
 run_thread_pool (int* files, int nfiles)
 {
-	Glib::Threads::Mutex::Lock lm (pool_lock);
+	std::unique_lock<std::mutex> lm (pool_lock);
 
 	/* Queue up all the files */
 	for (int n = 0; n < nfiles; ++n) {
@@ -142,11 +142,11 @@ run_thread_pool (int* files, int nfiles)
 	pool_errors = 0;
 
 	/* wake everybody up */
-	pool_run.broadcast ();
+	pool_run.notify_all ();
 
 	/* wait for everyone to finish */
 
-	pool_done.wait (pool_lock);
+	pool_done.wait (lm);
 
 	if (pool_errors) {
 		return -1;

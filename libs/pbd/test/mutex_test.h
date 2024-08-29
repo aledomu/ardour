@@ -1,6 +1,5 @@
 #include <cppunit/TestFixture.h>
 #include <cppunit/extensions/HelperMacros.h>
-#include "glibmm/threads.h"
 
 class MutexTest : public CppUnit::TestFixture
 {
@@ -13,5 +12,5 @@ public:
 	void testBasic ();
 
 private:
-	Glib::Threads::Mutex m_mutex;
+	std::mutex m_mutex;
 };

@@ -442,8 +442,8 @@ MidiTrack::non_realtime_locate (samplepos_t spos)
 		return;
 	}
 
-	Glib::Threads::Mutex::Lock lm (_control_lock, Glib::Threads::TRY_LOCK);
-	if (!lm.locked()) {
+	std::unique_lock<std::mutex> lm (_control_lock, std::defer_lock);
+	if (!lm.try_lock()) {
 		return;
 	}
 

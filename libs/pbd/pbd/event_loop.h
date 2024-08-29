@@ -24,6 +24,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <mutex>
 #include <boost/function.hpp>
 #include <boost/bind.hpp> /* we don't need this here, but anything calling call_slot() probably will, so this is convenient */
 #include <stdint.h>
@@ -117,7 +118,7 @@ private:
 
 	typedef std::vector<ThreadBufferMapping> ThreadRequestBufferList;
 	static ThreadRequestBufferList thread_buffer_requests;
-	static Glib::Threads::Mutex   thread_buffer_requests_lock;
+	static std::mutex   thread_buffer_requests_lock;
 
 	struct RequestBufferSupplier {
 

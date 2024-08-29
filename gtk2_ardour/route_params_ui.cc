@@ -23,7 +23,6 @@
 #include <algorithm>
 #include <inttypes.h>
 
-#include <glibmm/threads.h>
 #include <gtkmm/stock.h>
 
 #include "ardour/audioengine.h"

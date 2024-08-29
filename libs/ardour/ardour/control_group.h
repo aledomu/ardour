@@ -23,8 +23,6 @@
 #include <memory>
 #include <vector>
 
-#include <glibmm/threads.h>
-
 #include "pbd/controllable.h"
 
 #include "evoral/Parameter.h"

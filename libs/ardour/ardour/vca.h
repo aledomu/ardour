@@ -24,8 +24,6 @@
 #include <memory>
 #include <string>
 
-#include <glibmm/threads.h>
-
 #include "pbd/controllable.h"
 #include "pbd/statefuldestructible.h"
 
@@ -156,7 +154,7 @@ class LIBARDOUR_API VCA : public Stripable,
 
 
 	static int32_t next_number;
-	static Glib::Threads::Mutex number_lock;
+	static std::mutex number_lock;
 
 	void solo_target_going_away (std::weak_ptr<Route>);
 	void mute_target_going_away (std::weak_ptr<Route>);

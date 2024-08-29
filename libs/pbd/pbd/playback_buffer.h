@@ -65,7 +65,7 @@ public:
 	/* write-thread */
 	void reset () {
 		/* writer, when seeking, may block */
-		Glib::Threads::Mutex::Lock lm (_reset_lock);
+		std::lock_guard<std::mutex> lm (_reset_lock);
 		SpinLock sl (_reservation_lock);
 		read_idx.store (0);
 		write_idx.store (0);
@@ -74,7 +74,7 @@ public:
 
 	/* called from rt (reader) thread for new buffers */
 	void align_to (PlaybackBuffer const& other) {
-		Glib::Threads::Mutex::Lock lm (_reset_lock);
+		std::lock_guard<std::mutex> lm (_reset_lock);
 		read_idx.store (other.read_idx.load());
 		write_idx.store (other.write_idx.load());
 		reserved.store (other.reserved.load());
@@ -210,7 +210,7 @@ private:
 	/* spinlock will be used to update write_idx and reserved in sync */
 	spinlock_t _reservation_lock;
 	/* reset_lock is used to prevent concurrent reading and reset (seek, transport reversal etc). */
-	Glib::Threads::Mutex _reset_lock;
+	std::mutex _reset_lock;
 };
 
 template<class T> /*LIBPBD_API*/ size_t
@@ -284,8 +284,8 @@ PlaybackBuffer<T>::write_zero (size_t cnt)
 template<class T> /*LIBPBD_API*/ size_t
 PlaybackBuffer<T>::read (T *dest, size_t cnt, bool commit, size_t offset)
 {
-	Glib::Threads::Mutex::Lock lm (_reset_lock, Glib::Threads::TRY_LOCK);
-	if (!lm.locked ()) {
+	std::unique_lock<std::mutex> lm (_reset_lock, std::defer_lock);
+	if (!lm.try_lock ()) {
 		/* seek, reset in progress */
 		return 0;
 	}

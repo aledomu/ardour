@@ -53,8 +53,8 @@ using namespace std;
 using namespace PBD;
 
 PBD::Signal1<void, std::shared_ptr<Source>> SourceFactory::SourceCreated;
-Glib::Threads::Cond                           SourceFactory::PeaksToBuild;
-Glib::Threads::Mutex                          SourceFactory::peak_building_lock;
+std::condition_variable                     SourceFactory::PeaksToBuild;
+std::mutex                          SourceFactory::peak_building_lock;
 std::list<std::weak_ptr<AudioSource>>       SourceFactory::files_with_peaks;
 std::vector<PBD::Thread*>                     SourceFactory::peak_thread_pool;
 bool                                          SourceFactory::peak_thread_run = false;
@@ -68,16 +68,16 @@ peak_thread_work ()
 	pthread_set_name ("PeakFileBuilder");
 
 	while (true) {
-		SourceFactory::peak_building_lock.lock ();
+		std::unique_lock<std::mutex> pblm (SourceFactory::peak_building_lock);
 
 	wait:
 		if (SourceFactory::files_with_peaks.empty () && SourceFactory::peak_thread_run) {
-			SourceFactory::PeaksToBuild.wait (SourceFactory::peak_building_lock);
+			SourceFactory::PeaksToBuild.wait (pblm);
 			(void) Temporal::TempoMap::fetch();
 		}
 
 		if (!SourceFactory::peak_thread_run) {
-			SourceFactory::peak_building_lock.unlock ();
+			pblm.unlock ();
 			return;
 		}
 
@@ -90,16 +90,16 @@ peak_thread_work ()
 		if (as) {
 			++active_threads;
 		}
-		SourceFactory::peak_building_lock.unlock ();
+		pblm.unlock ();
 
 		if (!as) {
 			continue;
 		}
 
 		as->setup_peakfile ();
-		SourceFactory::peak_building_lock.lock ();
+		pblm.lock ();
 		--active_threads;
-		SourceFactory::peak_building_lock.unlock ();
+		pblm.unlock ();
 	}
 }
 
@@ -130,7 +130,7 @@ SourceFactory::terminate ()
 		return;
 	}
 	peak_thread_run = false;
-	PeaksToBuild.broadcast ();
+	PeaksToBuild.notify_all ();
 	for (auto& t : peak_thread_pool) {
 		t->join ();
 	}
@@ -144,9 +144,9 @@ SourceFactory::setup_peakfile (std::shared_ptr<Source> s, bool async)
 	if (as) {
 		// immediately set 'peakfile-path' for empty and NoPeakFile sources
 		if (async && !as->empty () && !(as->flags () & Source::NoPeakFile)) {
-			Glib::Threads::Mutex::Lock lm (peak_building_lock);
+			std::lock_guard<std::mutex> lm (peak_building_lock);
 			files_with_peaks.push_back (std::weak_ptr<AudioSource> (as));
-			PeaksToBuild.broadcast ();
+			PeaksToBuild.notify_all ();
 
 		} else {
 			if (as->setup_peakfile ()) {

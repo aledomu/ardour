@@ -327,7 +327,7 @@ bool
 PortInsert::configure_io (ChanCount in, ChanCount out)
 {
 #ifndef PLATFORM_WINDOWS
-	assert (!AudioEngine::instance()->process_lock().trylock());
+	assert (!AudioEngine::instance()->process_lock().try_lock());
 #endif
 
 	/* for an insert, processor input corresponds to IO output, and vice versa */

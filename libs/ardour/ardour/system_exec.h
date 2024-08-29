@@ -18,8 +18,6 @@
 #ifndef _ardour_system_exec_h_
 #define _ardour_system_exec_h_
 
-#include <glibmm/threads.h>
-
 #include "ardour/libardour_visibility.h"
 #include "pbd/system_exec.h"
 
@@ -42,7 +40,7 @@ private:
 	static void initialize ();
 
 	static bool                 _initialized;
-	static Glib::Threads::Mutex _init_mutex;
+	static std::mutex _init_mutex;
 	static std::string          _vfork_exec;
 
 };

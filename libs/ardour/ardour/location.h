@@ -33,8 +33,6 @@
 
 #include <sys/types.h>
 
-#include <glibmm/threads.h>
-
 #include "pbd/undo.h"
 #include "pbd/stateful.h"
 #include "pbd/statefuldestructible.h"

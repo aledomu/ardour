@@ -24,7 +24,6 @@
 #ifndef __ardour_lv2_plugin_h__
 #define __ardour_lv2_plugin_h__
 
-#include <glibmm/threads.h>
 #include <set>
 #include <string>
 #include <vector>
@@ -310,9 +309,9 @@ class LIBARDOUR_API LV2Plugin : public ARDOUR::Plugin, public ARDOUR::Workee
 	PBD::RingBuffer<uint8_t>* _to_ui;
 	PBD::RingBuffer<uint8_t>* _from_ui;
 
-	Glib::Threads::Mutex _work_mutex;
+	std::mutex _work_mutex;
 
-	Glib::Threads::Mutex                   _slave_lock;
+	std::mutex                   _slave_lock;
 	std::set<std::shared_ptr<LV2Plugin>> _slaves;
 
 #ifdef LV2_EXTENDED

@@ -20,6 +20,7 @@
 #ifndef __ardour_source_factory_h__
 #define __ardour_source_factory_h__
 
+#include <condition_variable>
 #include <memory>
 #include <stdint.h>
 #include <string>
@@ -50,8 +51,8 @@ public:
 	static std::shared_ptr<Source> createForRecovery (DataType, Session&, const std::string& path, int chn);
 	static std::shared_ptr<Source> createFromPlaylist (DataType, Session&, std::shared_ptr<Playlist> p, const PBD::ID& orig, const std::string& name, uint32_t chn, timepos_t start, timepos_t const& len, bool copy, bool defer_peaks);
 
-	static Glib::Threads::Cond  PeaksToBuild;
-	static Glib::Threads::Mutex peak_building_lock;
+	static std::condition_variable  PeaksToBuild;
+	static std::mutex peak_building_lock;
 
 	static bool                      peak_thread_run;
 	static std::vector<PBD::Thread*> peak_thread_pool;

@@ -67,7 +67,6 @@
 #include "pbd/locale_guard.h"
 
 #include <glibmm.h>
-#include <glibmm/threads.h>
 #include <glibmm/fileutils.h>
 
 #include <boost/algorithm/string.hpp>
@@ -316,7 +315,7 @@ Session::post_engine_init ()
 		 * and IOChange are complete.
 		 */
 		{
-			Glib::Threads::Mutex::Lock lx (AudioEngine::instance()->process_lock ());
+			std::unique_lock<std::mutex> lx (AudioEngine::instance()->process_lock ());
 			ProcessorChangeBlocker pcb (this);
 			std::shared_ptr<RouteList const> r = routes.reader ();
 			for (auto const& i : *r) {
@@ -324,7 +323,7 @@ Session::post_engine_init ()
 			}
 			/* release process-lock, ProcessorChangeBlocker may trigger
 			 * latency-callback from non-rt thread which may take the lock */
-			lx.release ();
+			lx.unlock ();
 		}
 
 		/* Reset all panners */
@@ -358,7 +357,7 @@ Session::post_engine_init ()
 		ControlProtocolManager::instance().midi_connectivity_established (true);
 
 		if (_is_new && !no_auto_connect()) {
-			Glib::Threads::Mutex::Lock lm (AudioEngine::instance()->process_lock());
+			std::lock_guard<std::mutex> lm (AudioEngine::instance()->process_lock());
 			auto_connect_master_bus ();
 		}
 
@@ -774,10 +773,10 @@ Session::save_state (string snapshot_name, bool pending, bool switch_to_snapshot
 
 	/* prevent concurrent saves from different threads */
 
-	Glib::Threads::Mutex::Lock lm (save_state_lock);
-	Glib::Threads::Mutex::Lock lx (save_source_lock, Glib::Threads::NOT_LOCK);
+	std::lock_guard<std::mutex> lm (save_state_lock);
+	std::unique_lock<std::mutex> lx (save_source_lock, std::defer_lock);
 	if (!for_archive) {
-		lx.acquire ();
+		lx.lock ();
 	}
 
 	if (!_writable || cannot_save()) {
@@ -1313,7 +1312,7 @@ Session::state (bool save_template, snapshot_t snapshot_type, bool for_archive, 
 	child = node->add_child ("Sources");
 
 	if (!save_template) {
-		Glib::Threads::Mutex::Lock sl (source_lock);
+		std::lock_guard<std::mutex> sl (source_lock);
 
 		set<std::shared_ptr<Source> > sources_used_by_this_snapshot;
 
@@ -1372,7 +1371,7 @@ Session::state (bool save_template, snapshot_t snapshot_type, bool for_archive, 
 	child = node->add_child ("Regions");
 
 	if (!save_template) {
-		Glib::Threads::Mutex::Lock rl (region_lock);
+		std::lock_guard<std::mutex> rl (region_lock);
 
 		if (!only_used_assets) {
 			const RegionFactory::RegionMap& region_map (RegionFactory::all_regions());
@@ -1550,14 +1549,14 @@ Session::state (bool save_template, snapshot_t snapshot_type, bool for_archive, 
 	}
 
 	{
-		Glib::Threads::Mutex::Lock lm (lua_lock);
+		std::unique_lock<std::mutex> lm (lua_lock);
 		std::string saved;
 		{
 			luabridge::LuaRef savedstate ((*_lua_save)());
 			saved = savedstate.cast<std::string>();
 		}
 		lua.collect_garbage ();
-		lm.release ();
+		lm.unlock ();
 
 		gchar* b64 = g_base64_encode ((const guchar*)saved.c_str (), saved.size ());
 		std::string b64s (b64);
@@ -2055,7 +2054,7 @@ Session::set_state (const XMLNode& node, int version)
 			gsize size;
 			guchar* buf = g_base64_decode ((*n)->content ().c_str (), &size);
 			try {
-				Glib::Threads::Mutex::Lock lm (lua_lock);
+				std::lock_guard<std::mutex> lm (lua_lock);
 				(*_lua_load)(std::string ((const char*)buf, size));
 			} catch (luabridge::LuaException const& e) {
 #ifndef NDEBUG
@@ -2093,7 +2092,7 @@ Session::set_state (const XMLNode& node, int version)
 				/* TODO Unknown I/O Plugin, retain state */
 			}
 		}
-		Glib::Threads::Mutex::Lock lm (AudioEngine::instance()->process_lock ());
+		std::lock_guard<std::mutex> lm (AudioEngine::instance()->process_lock ());
 		for (auto const& i : *iopl) {
 			i->ensure_io ();
 		}
@@ -2673,7 +2672,7 @@ Session::get_sources_as_xml ()
 
 {
 	XMLNode* node = new XMLNode (X_("Sources"));
-	Glib::Threads::Mutex::Lock lm (source_lock);
+	std::lock_guard<std::mutex> lm (source_lock);
 
 	for (SourceMap::const_iterator i = sources.begin(); i != sources.end(); ++i) {
 		node->add_child_nocopy (i->second->get_state());
@@ -2938,7 +2937,7 @@ Session::refresh_disk_space ()
 {
 #if __APPLE__ || __FreeBSD__ || __NetBSD__ || (HAVE_SYS_VFS_H && HAVE_SYS_STATVFS_H)
 
-	Glib::Threads::Mutex::Lock lm (space_lock);
+	std::lock_guard<std::mutex> lm (space_lock);
 
 	/* get freespace on every FS that is part of the session path */
 
@@ -3709,8 +3708,8 @@ Session::can_cleanup_peakfiles () const
 int
 Session::cleanup_peakfiles ()
 {
-	Glib::Threads::Mutex::Lock lm (peak_cleanup_lock, Glib::Threads::TRY_LOCK);
-	if (!lm.locked()) {
+	std::unique_lock<std::mutex> lm (peak_cleanup_lock, std::defer_lock);
+	if (!lm.try_lock()) {
 		return -1;
 	}
 
@@ -3770,8 +3769,6 @@ Session::cleanup_sources (CleanupReport& rep)
 
 	_state_of_the_state = StateOfTheState (_state_of_the_state | InCleanup);
 
-	Glib::Threads::Mutex::Lock ls (source_lock, Glib::Threads::NOT_LOCK);
-
 	/* this is mostly for windows which doesn't allow file
 	 * renaming if the file is in use. But we don't special
 	 * case it because we need to know if this causes
@@ -3799,21 +3796,22 @@ Session::cleanup_sources (CleanupReport& rep)
 	rep.paths.clear ();
 	rep.space = 0;
 
-	ls.acquire ();
-	for (auto const& i : sources) {
-		std::shared_ptr<FileSource> fs = std::dynamic_pointer_cast<FileSource> (i.second);
-		/* do not bother with files that are zero size, otherwise we remove the current "nascent"
-		 * capture files.
-		 */
-		if (fs && fs->is_stub ()) {
-			continue;
-		}
+	{
+		std::lock_guard<std::mutex> ls (source_lock);
+		for (auto const& i : sources) {
+			std::shared_ptr<FileSource> fs = std::dynamic_pointer_cast<FileSource> (i.second);
+			/* do not bother with files that are zero size, otherwise we remove the current "nascent"
+			* capture files.
+			*/
+			if (fs && fs->is_stub ()) {
+				continue;
+			}
 
-		if (!i.second->used ()) {
-			dead_sources.insert (i.second);
+			if (!i.second->used ()) {
+				dead_sources.insert (i.second);
+			}
 		}
 	}
-	ls.release ();
 
 	/* build a list of all the possible audio directories for the session */
 
@@ -3852,63 +3850,63 @@ Session::cleanup_sources (CleanupReport& rep)
 	collect_sources_of_this_snapshot (sources_used_by_this_snapshot );
 
 	/*  add our current source list */
+	{
+		std::lock_guard<std::mutex> ls (source_lock);
+		for (SourceMap::iterator i = sources.begin(); i != sources.end(); ) {
+			std::shared_ptr<FileSource> fs;
+			SourceMap::iterator tmp = i;
+			++tmp;
 
-	ls.acquire ();
-	for (SourceMap::iterator i = sources.begin(); i != sources.end(); ) {
-		std::shared_ptr<FileSource> fs;
-		SourceMap::iterator tmp = i;
-		++tmp;
-
-		if ((fs = std::dynamic_pointer_cast<FileSource> (i->second)) == 0) {
-			/* not a file */
-			i = tmp;
-			continue;
-		}
-
-		/* this is mostly for windows which doesn't allow file
-		 * renaming if the file is in use. But we do not special
-		 * case it because we need to know if this causes
-		 * problems, and the easiest way to notice that is to
-		 * keep it in place for all platforms.
-		 */
-
-		fs->close ();
-
-		if (!fs->is_stub()) {
-
-			/* Note that we're checking a list of all
-			 * sources across all snapshots with the list
-			 * of sources used by this snapshot.
-			 */
-
-			if (sources_used_by_this_snapshot.find (i->second) != sources_used_by_this_snapshot.end()) {
-				/* this source is in use by this snapshot */
-				sources_used_by_all_snapshots.insert (fs->path());
-				cerr << "Source from source list found in used_by_this_snapshot (" << fs->path() << ")\n";
-			} else {
-				cerr << "Source from source list NOT found in used_by_this_snapshot (" << fs->path() << ")\n";
-				/* this source is NOT in use by this snapshot */
-
-				/* remove all related regions from RegionFactory master list */
-
-				RegionFactory::remove_regions_using_source (i->second);
-
-				/* remove from our current source list
-				 * also. We may not remove it from
-				 * disk, because it may be used by
-				 * other snapshots, but it isn't used inside this
-				 * snapshot anymore, so we don't need a
-				 * reference to it.
-				 */
-
-				dead_sources.insert (i->second);
-				sources.erase (i);
+			if ((fs = std::dynamic_pointer_cast<FileSource> (i->second)) == 0) {
+				/* not a file */
+				i = tmp;
+				continue;
 			}
-		}
 
-		i = tmp;
+			/* this is mostly for windows which doesn't allow file
+			* renaming if the file is in use. But we do not special
+			* case it because we need to know if this causes
+			* problems, and the easiest way to notice that is to
+			* keep it in place for all platforms.
+			*/
+
+			fs->close ();
+
+			if (!fs->is_stub()) {
+
+				/* Note that we're checking a list of all
+				* sources across all snapshots with the list
+				* of sources used by this snapshot.
+				*/
+
+				if (sources_used_by_this_snapshot.find (i->second) != sources_used_by_this_snapshot.end()) {
+					/* this source is in use by this snapshot */
+					sources_used_by_all_snapshots.insert (fs->path());
+					cerr << "Source from source list found in used_by_this_snapshot (" << fs->path() << ")\n";
+				} else {
+					cerr << "Source from source list NOT found in used_by_this_snapshot (" << fs->path() << ")\n";
+					/* this source is NOT in use by this snapshot */
+
+					/* remove all related regions from RegionFactory master list */
+
+					RegionFactory::remove_regions_using_source (i->second);
+
+					/* remove from our current source list
+					* also. We may not remove it from
+					* disk, because it may be used by
+					* other snapshots, but it isn't used inside this
+					* snapshot anymore, so we don't need a
+					* reference to it.
+					*/
+
+					dead_sources.insert (i->second);
+					sources.erase (i);
+				}
+			}
+
+			i = tmp;
+		}
 	}
-	ls.release ();
 
 	cerr << "Dead Sources: " << dead_sources.size() << endl;
 
@@ -4149,14 +4147,14 @@ Session::add_controllable (std::shared_ptr<Controllable> c)
 	   as part of the session.
 	*/
 
-	Glib::Threads::Mutex::Lock lm (controllables_lock);
+	std::lock_guard<std::mutex> lm (controllables_lock);
 	controllables.insert (c);
 }
 
 std::shared_ptr<Controllable>
 Session::controllable_by_id (const PBD::ID& id)
 {
-	Glib::Threads::Mutex::Lock lm (controllables_lock);
+	std::lock_guard<std::mutex> lm (controllables_lock);
 
 	for (Controllables::iterator i = controllables.begin(); i != controllables.end(); ++i) {
 		if ((*i)->id() == id) {
@@ -5107,7 +5105,7 @@ Session::bring_all_sources_into_session (boost::function<void(uint32_t,uint32_t,
 
 	{
 
-		Glib::Threads::Mutex::Lock lm (source_lock);
+		std::lock_guard<std::mutex> lm (source_lock);
 
 		for (SourceMap::const_iterator i = sources.begin(); i != sources.end(); ++i) {
 			std::shared_ptr<FileSource> fs = std::dynamic_pointer_cast<FileSource> (i->second);
@@ -5659,7 +5657,7 @@ Session::archive_session (const std::string& dest,
 
 	/* We are going to temporarily change some source properties,
 	 * don't allow any concurrent saves (periodic or otherwise */
-	Glib::Threads::Mutex::Lock lm (save_source_lock);
+	std::lock_guard<std::mutex> lm (save_source_lock);
 
 	disable_record (false);
 
@@ -5746,7 +5744,7 @@ Session::archive_session (const std::string& dest,
 	 */
 	size_t total_size = 0;
 	{
-		Glib::Threads::Mutex::Lock lm (source_lock);
+		std::lock_guard<std::mutex> lm (source_lock);
 
 		/* build a list of used names */
 		std::set<std::string> audio_file_names;
@@ -5840,7 +5838,7 @@ Session::archive_session (const std::string& dest,
 			progress->set_progress (0);
 		}
 
-		Glib::Threads::Mutex::Lock lm (source_lock);
+		std::lock_guard<std::mutex> lm (source_lock);
 		for (SourceMap::const_iterator i = sources.begin(); i != sources.end(); ++i) {
 			if (std::dynamic_pointer_cast<SilentFileSource> (i->second)) {
 				continue;

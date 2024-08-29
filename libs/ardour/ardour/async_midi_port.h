@@ -87,7 +87,7 @@ class LIBARDOUR_API AsyncMIDIPort : public ARDOUR::MidiPort, public MIDI::Port {
 		boost::function<samplecnt_t (void)> timer;
 		PBD::RingBuffer< Evoral::Event<double> > output_fifo;
 		EventRingBuffer<MIDI::timestamp_t> input_fifo;
-		Glib::Threads::Mutex output_fifo_lock;
+		std::mutex output_fifo_lock;
 		CrossThreadChannel _xthread;
 
 		int create_port ();

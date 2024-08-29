@@ -21,13 +21,13 @@
 #ifndef __pbd_base_ui_h__
 #define __pbd_base_ui_h__
 
+#include <condition_variable>
 #include <string>
 #include <stdint.h>
 
 #include <sigc++/slot.h>
 #include <sigc++/trackable.h>
 
-#include <glibmm/threads.h>
 #include <glibmm/main.h>
 
 #include "pbd/libpbd_visibility.h"
@@ -80,8 +80,8 @@ class LIBPBD_API BaseUI : public sigc::trackable, public PBD::EventLoop
 	Glib::RefPtr<Glib::MainLoop> _main_loop;
 	Glib::RefPtr<Glib::MainContext> m_context;
 	PBD::Thread*                _run_loop_thread;
-	Glib::Threads::Mutex        _run_lock;
-	Glib::Threads::Cond         _running;
+	std::mutex        _run_lock;
+	std::condition_variable         _running;
 
 	/* this signals _running from within the event loop,
 	   from an idle callback

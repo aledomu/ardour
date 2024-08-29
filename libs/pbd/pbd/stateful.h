@@ -124,7 +124,7 @@ class LIBPBD_API Stateful {
 	XMLNode *_extra_xml;
 	XMLNode *_instant_xml;
 	PBD::PropertyChange     _pending_changed;
-	Glib::Threads::Mutex _lock;
+	std::mutex _lock;
 
 	std::string _xml_node_name; ///< name of node to use for this object in XML
 	OwnedPropertyList* _properties;

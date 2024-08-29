@@ -57,6 +57,8 @@ StripSilenceDialog::StripSilenceDialog (Session* s, list<RegionView*> const & v)
 	, _minimum_length_value (1000)
 	, _fade_length_value (64)
 {
+	std::mutex inner_lock;
+	_lock = std::unique_lock(inner_lock, std::defer_lock);
 	set_session (s);
 
 	for (list<RegionView*>::const_iterator r = v.begin(); r != v.end(); ++r) {
@@ -149,7 +151,7 @@ StripSilenceDialog::~StripSilenceDialog ()
 	_thread_should_finish = true;
 	_lock.unlock ();
 
-	_run_cond.signal ();
+	_run_cond.notify_one ();
 	pthread_join (_thread, 0);
 
 	delete _minimum_length;
@@ -236,7 +238,7 @@ void
 StripSilenceDialog::update_silence_rects ()
 {
 	/* Lock so that we don't contend with the detection thread for access to the silence regions */
-	Glib::Threads::Mutex::Lock lm (_lock);
+	std::lock_guard<std::unique_lock<std::mutex>> lm (_lock);
 	double const y = _threshold.get_value();
 
 	for (list<ViewInterval>::iterator v = views.begin(); v != views.end(); ++v) {
@@ -328,7 +330,7 @@ StripSilenceDialog::restart_thread ()
 	_lock.unlock ();
 
 	/* And re-awake the thread */
-	_run_cond.signal ();
+	_run_cond.notify_one ();
 }
 
 void

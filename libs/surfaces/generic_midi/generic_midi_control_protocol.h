@@ -23,8 +23,6 @@
 #define ardour_generic_midi_control_protocol_h
 
 #include <list>
-#include <glibmm/threads.h>
-
 #define ABSTRACT_UI_EXPORTS
 #include "pbd/abstract_ui.h"
 
@@ -168,8 +166,8 @@ private:
 	};
 	typedef std::list<MIDIPendingControllable* > MIDIPendingControllables;
 	MIDIPendingControllables pending_controllables;
-	mutable Glib::Threads::Mutex controllables_lock;
-	Glib::Threads::Mutex pending_lock;
+	mutable std::mutex controllables_lock;
+	std::mutex pending_lock;
 
 	bool start_learning (std::weak_ptr<PBD::Controllable>);
 	void stop_learning (std::weak_ptr<PBD::Controllable>);

@@ -25,8 +25,6 @@
 
 #include <map>
 
-#include <glibmm/threads.h>
-
 #include "evoral/Event.h"
 #include "evoral/EventSink.h"
 #include "evoral/midi_util.h"

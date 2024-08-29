@@ -47,8 +47,6 @@
 
 #include <glibmm/miscutils.h>
 #include <glibmm/fileutils.h>
-#include <glibmm/threads.h>
-
 #include "ardour/audiofilesource.h"
 #include "ardour/debug.h"
 #include "ardour/ffmpegfilesource.h"

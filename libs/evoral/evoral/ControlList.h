@@ -30,8 +30,6 @@
 #include <boost/pool/pool.hpp>
 #include <boost/pool/pool_alloc.hpp>
 
-#include <glibmm/threads.h>
-
 #include "pbd/signals.h"
 
 #include "temporal/domain_provider.h"

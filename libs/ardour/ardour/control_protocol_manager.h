@@ -27,8 +27,6 @@
 #include <list>
 
 
-#include <glibmm/threads.h>
-
 #include "pbd/stateful.h"
 
 #include "control_protocol/types.h"

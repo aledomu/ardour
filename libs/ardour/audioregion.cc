@@ -32,8 +32,6 @@
 #include <boost/scoped_array.hpp>
 
 #include <glibmm/fileutils.h>
-#include <glibmm/threads.h>
-
 #include "pbd/gstdio_compat.h"
 #include "pbd/basename.h"
 #include "pbd/xml++.h"
@@ -724,7 +722,7 @@ AudioRegion::read_at (Sample*     buf,
 		}
 	}
 
-	Glib::Threads::Mutex::Lock cl (_cache_lock);
+	std::unique_lock<std::mutex> cl (_cache_lock);
 	if (chan_n == 0 && _invalidated.exchange (false)) {
 		_cache_start = _cache_end = -1;
 		_cache_tail  = 0;

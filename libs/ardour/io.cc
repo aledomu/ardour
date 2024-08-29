@@ -33,8 +33,6 @@
 #include <errno.h>
 
 #include <glibmm.h>
-#include <glibmm/threads.h>
-
 #include "pbd/xml++.h"
 #include "pbd/replace_all.h"
 #include "pbd/unknown_type.h"
@@ -56,7 +54,7 @@
 
 #include "pbd/i18n.h"
 
-#define BLOCK_PROCESS_CALLBACK() Glib::Threads::Mutex::Lock em (AudioEngine::instance()->process_lock())
+#define BLOCK_PROCESS_CALLBACK() std::lock_guard<std::mutex> em (AudioEngine::instance()->process_lock())
 
 using namespace std;
 using namespace ARDOUR;
@@ -367,7 +365,7 @@ int
 IO::ensure_ports_locked (ChanCount count, bool clear, bool& changed)
 {
 #ifndef PLATFORM_WINDOWS
-	assert (!AudioEngine::instance()->process_lock().trylock());
+	assert (!AudioEngine::instance()->process_lock().try_lock());
 #endif
 
 	std::shared_ptr<Port> port;
@@ -468,7 +466,7 @@ int
 IO::ensure_ports (ChanCount count, bool clear, void* src)
 {
 #ifndef PLATFORM_WINDOWS
-	assert (!AudioEngine::instance()->process_lock().trylock());
+	assert (!AudioEngine::instance()->process_lock().try_lock());
 #endif
 
 	if (count == n_ports() && !clear) {
@@ -510,7 +508,7 @@ int
 IO::ensure_io (ChanCount count, bool clear, void* src)
 {
 #ifndef PLATFORM_WINDOWS
-	assert (!AudioEngine::instance()->process_lock().trylock());
+	assert (!AudioEngine::instance()->process_lock().try_lock());
 #endif
 
 	return ensure_ports (count, clear, src);
@@ -861,7 +859,7 @@ IO::create_ports (const XMLNode& node, int version)
 	get_port_counts (node, version, n, c);
 
 	{
-		Glib::Threads::Mutex::Lock lm (AudioEngine::instance()->process_lock ());
+		std::lock_guard<std::mutex> lm (AudioEngine::instance()->process_lock ());
 
 		if (ensure_ports (n, !_session.inital_connect_or_deletion_in_progress (), this)) {
 			error << string_compose(_("%1: cannot create I/O ports"), _name) << endmsg;
@@ -1022,7 +1020,7 @@ IO::set_ports (const string& str)
 	}
 
 	{
-		Glib::Threads::Mutex::Lock lm (AudioEngine::instance()->process_lock ());
+		std::lock_guard<std::mutex> lm (AudioEngine::instance()->process_lock ());
 
 		// FIXME: audio-only
 		if (ensure_ports (ChanCount(DataType::AUDIO, nports), true, this)) {

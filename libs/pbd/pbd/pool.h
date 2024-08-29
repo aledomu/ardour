@@ -25,8 +25,6 @@
 #include <string>
 #include <vector>
 
-#include <glibmm/threads.h>
-
 #include "pbd/libpbd_visibility.h"
 #include "pbd/ringbuffer.h"
 
@@ -86,7 +84,7 @@ public:
 	virtual void  release (void*);
 
 private:
-	Glib::Threads::Mutex m_lock;
+	std::mutex m_lock;
 };
 
 class LIBPBD_API MultiAllocSingleReleasePool : public Pool
@@ -99,7 +97,7 @@ public:
 	virtual void  release (void*);
 
 private:
-	Glib::Threads::Mutex m_lock;
+	std::mutex m_lock;
 };
 
 class LIBPBD_API PerThreadPool;
@@ -169,7 +167,7 @@ private:
 	std::string                             _name;
 
 	/** mutex to protect either changes to the _trash variable, or writes to the RingBuffer */
-	Glib::Threads::Mutex               _trash_mutex;
+	std::mutex               _trash_mutex;
 	PBD::RingBuffer<CrossThreadPool*>* _trash;
 };
 

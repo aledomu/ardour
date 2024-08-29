@@ -212,7 +212,7 @@ MTC_TransportMaster::ok() const
 void
 MTC_TransportMaster::queue_reset (bool reset_pos)
 {
-	Glib::Threads::Mutex::Lock lm (reset_lock);
+	std::lock_guard<std::mutex> lm (reset_lock);
 	reset_pending++;
 	if (reset_pos) {
 		reset_position = true;
@@ -222,7 +222,7 @@ MTC_TransportMaster::queue_reset (bool reset_pos)
 void
 MTC_TransportMaster::maybe_reset ()
 {
-	Glib::Threads::Mutex::Lock lm (reset_lock);
+	std::lock_guard<std::mutex> lm (reset_lock);
 
 	if (reset_pending) {
 		reset (reset_position);

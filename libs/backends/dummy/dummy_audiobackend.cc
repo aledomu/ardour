@@ -1424,7 +1424,7 @@ static const float _demolition[] = {
 
 void DummyAudioPort::generate (const pframes_t n_samples)
 {
-	Glib::Threads::Mutex::Lock lm (generator_lock);
+	std::lock_guard<std::mutex> lm (generator_lock);
 	if (_gen_cycle) {
 		return;
 	}
@@ -1686,7 +1686,7 @@ DummyMidiPort::setup_generator (int seq_id, const float sr)
 
 void DummyMidiPort::midi_generate (const pframes_t n_samples)
 {
-	Glib::Threads::Mutex::Lock lm (generator_lock);
+	std::lock_guard<std::mutex> lm (generator_lock);
 	if (_gen_cycle) {
 		return;
 	}

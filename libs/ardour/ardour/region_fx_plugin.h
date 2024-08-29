@@ -202,7 +202,7 @@ private:
 
 	XMLNode* _state;
 
-	mutable Glib::Threads::Mutex _process_lock;
+	mutable std::mutex _process_lock;
 };
 
 } // namespace ARDOUR

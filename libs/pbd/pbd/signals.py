@@ -111,7 +111,7 @@ def signal(f, n, v):
     print("\t~Signal%d () {" % n, file=f)
 
     print("\t\t_in_dtor.store (true, std::memory_order_release);", file=f)
-    print("\t\tGlib::Threads::Mutex::Lock lm (_mutex);", file=f)
+    print("\t\tstd::lock_guard<std::mutex> lm (_mutex);", file=f)
     print("\t\t/* Tell our connection objects that we are going away, so they don't try to call us */", file=f)
     print("\t\tfor (%sSlots::const_iterator i = _slots.begin(); i != _slots.end(); ++i) {" % typename, file=f)
 
@@ -235,7 +235,7 @@ def signal(f, n, v):
     print("", file=f)
     print("\t\tSlots s;", file=f)
     print("\t\t{", file=f)
-    print("\t\t\tGlib::Threads::Mutex::Lock lm (_mutex);", file=f)
+    print("\t\t\tstd::lock_guard<std::mutex> lm (_mutex);", file=f)
     print("\t\t\ts = _slots;", file=f)
     print("\t\t}", file=f)
     print("", file=f)
@@ -250,7 +250,7 @@ def signal(f, n, v):
 \t\t\t */
 \t\t\tbool still_there = false;
 \t\t\t{
-\t\t\t\tGlib::Threads::Mutex::Lock lm (_mutex);
+\t\t\t\tstd::lock_guard<std::mutex> lm (_mutex);
 \t\t\t\tstill_there = _slots.find (i->first) != _slots.end ();
 \t\t\t}
 
@@ -270,13 +270,13 @@ def signal(f, n, v):
 
     print("""
 \tbool empty () const {
-\t\tGlib::Threads::Mutex::Lock lm (_mutex);
+\t\tstd::lock_guard<std::mutex> lm (_mutex);
 \t\treturn _slots.empty ();
 \t}
 """, file=f)
     print("""
 \tsize_t size () const {
-\t\tGlib::Threads::Mutex::Lock lm (_mutex);
+\t\tstd::lock_guard<std::mutex> lm (_mutex);
 \t\treturn _slots.size ();
 \t}
 """, file=f)
@@ -294,7 +294,7 @@ def signal(f, n, v):
 \tstd::shared_ptr<Connection> _connect (PBD::EventLoop::InvalidationRecord* ir, slot_function_type f)
 \t{
 \t\tstd::shared_ptr<Connection> c (new Connection (this, ir));
-\t\tGlib::Threads::Mutex::Lock lm (_mutex);
+\t\tstd::lock_guard<std::mutex> lm (_mutex);
 \t\t_slots[c] = f;
 #ifdef DEBUG_PBD_SIGNAL_CONNECTIONS
 \t\tif (_debug_connection) {
@@ -309,17 +309,15 @@ def signal(f, n, v):
 \tvoid disconnect (std::shared_ptr<Connection> c)
 \t{
 \t\t/* ~ScopedConnection can call this concurrently with our d'tor */
-\t\tGlib::Threads::Mutex::Lock lm (_mutex, Glib::Threads::TRY_LOCK);
-\t\twhile (!lm.locked()) {
+\t\tstd::unique_lock lm (_mutex, std::defer_lock);
+\t\twhile (!lm.try_lock()) {  /* Spin */
 \t\t\tif (_in_dtor.load (std::memory_order_acquire)) {
 \t\t\t/* d'tor signal_going_away() took care of everything already */
 \t\t\t\treturn;
 \t\t\t}
-\t\t\t/* Spin */
-\t\t\tlm.try_acquire ();
 \t\t}
 \t\t_slots.erase (c);
-\t\tlm.release ();
+\t\tlm.unlock ();
 
 \t\tc->disconnected ();
 #ifdef DEBUG_PBD_SIGNAL_CONNECTIONS

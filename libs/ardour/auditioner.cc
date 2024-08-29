@@ -20,8 +20,6 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <glibmm/threads.h>
-
 #include "pbd/error.h"
 
 #include "ardour/amp.h"
@@ -163,7 +161,7 @@ Auditioner::load_synth ()
 			error << _("Failed to load synth for MIDI-Audition.") << endmsg;
 		}
 
-		Glib::Threads::Mutex::Lock lm (AudioEngine::instance()->process_lock ());
+		std::lock_guard<std::mutex> lm (AudioEngine::instance()->process_lock ());
 		if (configure_processors (&ps)) {
 			error << _("Cannot setup auditioner processing flow.") << endmsg;
 			unload_synth (true);
@@ -374,7 +372,7 @@ Auditioner::audition_region (std::shared_ptr<Region> region, bool loop)
 
 	_loop = loop;
 
-	Glib::Threads::Mutex::Lock lm (lock);
+	std::lock_guard<std::mutex> lm (lock);
 
 	if (std::dynamic_pointer_cast<AudioRegion>(region) != 0) {
 
@@ -397,7 +395,7 @@ Auditioner::audition_region (std::shared_ptr<Region> region, bool loop)
 
 		{
 			ProcessorStreams ps;
-			Glib::Threads::Mutex::Lock lm (AudioEngine::instance()->process_lock ());
+			std::lock_guard<std::mutex> lm (AudioEngine::instance()->process_lock ());
 
 			if (configure_processors (&ps)) {
 				error << string_compose (_("Cannot setup auditioner processing flow for %1 channels"),

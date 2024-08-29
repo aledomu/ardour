@@ -364,7 +364,7 @@ private:
 	std::vector<uint32_t> ladspa_plugin_whitelist;
 
 	PBD::ScopedConnection lua_refresh_connection;
-	Glib::Threads::Mutex _lock;
+	std::mutex _lock;
 
 	static PluginManager* _instance; // singleton
 	PluginManager ();

@@ -25,8 +25,6 @@
 
 #include <string>
 #include <time.h>
-#include <glibmm/threads.h>
-
 #include "pbd/stateful.h"
 #include "pbd/xml++.h"
 

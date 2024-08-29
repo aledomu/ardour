@@ -33,7 +33,6 @@
 #include <set>
 #include <string>
 
-#include <glibmm/threads.h>
 #include "pbd/fastlog.h"
 #include "pbd/xml++.h"
 #include "pbd/undo.h"
@@ -719,7 +718,7 @@ private:
 
 	void processor_selfdestruct (std::weak_ptr<Processor>);
 	std::vector<std::weak_ptr<Processor> > selfdestruct_sequence;
-	Glib::Threads::Mutex  selfdestruct_lock;
+	std::mutex  selfdestruct_lock;
 
 	bool input_port_count_changing (ChanCount);
 	bool output_port_count_changing (ChanCount);

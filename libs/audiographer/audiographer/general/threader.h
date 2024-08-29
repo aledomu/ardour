@@ -2,6 +2,7 @@
 #define AUDIOGRAPHER_THREADER_H
 
 #include <atomic>
+#include <condition_variable>
 #include <vector>
 #include <algorithm>
 
@@ -92,12 +93,12 @@ class /*LIBAUDIOGRAPHER_API*/ Threader : public Source<T>, public Sink<T>
 
 	void wait()
 	{
+		std::unique_lock<std::mutex> lm (wait_mutex, std::defer_lock);
 		while (readers.load () != 0) {
-			gint64 end_time = g_get_monotonic_time () + (wait_timeout * G_TIME_SPAN_MILLISECOND);
-			wait_cond.wait_until(wait_mutex, end_time);
+			wait_cond.wait_for(lm, wait_timeout);
 		}
 
-		wait_mutex.unlock();
+		lm.unlock();
 
 		if (exception) {
 			throw *exception;
@@ -116,20 +117,20 @@ class /*LIBAUDIOGRAPHER_API*/ Threader : public Source<T>, public Sink<T>
 		}
 
 		if (PBD::atomic_dec_and_test (readers)) {
-			wait_cond.signal();
+			wait_cond.notify_one();
 		}
 	}
 
 	OutputVec outputs;
 
 	Glib::ThreadPool&    thread_pool;
-	Glib::Threads::Mutex wait_mutex;
-	Glib::Threads::Cond  wait_cond;
+	std::mutex wait_mutex;
+	std::condition_variable  wait_cond;
 
 	std::atomic<int> readers;
-	long         wait_timeout;
+	std::chrono::milliseconds wait_timeout;
 
-	Glib::Threads::Mutex exception_mutex;
+	std::mutex exception_mutex;
 	std::shared_ptr<ThreaderException> exception;
 
 };

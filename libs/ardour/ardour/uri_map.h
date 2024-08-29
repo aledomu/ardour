@@ -23,8 +23,6 @@
 
 #include <map>
 
-#include <glibmm/threads.h>
-
 #ifdef HAVE_LV2_1_18_6
 #include <lv2/core/lv2.h>
 #include <lv2/urid/urid.h>
@@ -142,7 +140,7 @@ private:
 	LV2_Feature         _urid_unmap_feature;
 	LV2_URID_Unmap      _urid_unmap_feature_data;
 
-	mutable Glib::Threads::Mutex _lock;
+	mutable std::mutex _lock;
 
 	static URIMap* uri_map;
 };

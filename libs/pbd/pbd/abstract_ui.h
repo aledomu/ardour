@@ -25,8 +25,6 @@
 #include <string>
 #include <pthread.h>
 
-#include <glibmm/threads.h>
-
 #include "pbd/libpbd_visibility.h"
 #include "pbd/receiver.h"
 #include "pbd/ringbufferNPT.h"

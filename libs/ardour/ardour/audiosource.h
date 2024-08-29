@@ -29,7 +29,6 @@
 
 #include <time.h>
 
-#include <glibmm/threads.h>
 #include <boost/function.hpp>
 #include <boost/scoped_array.hpp>
 
@@ -112,7 +111,7 @@ class LIBARDOUR_API AudioSource : virtual public Source, public ARDOUR::AudioRea
 
 	static std::vector<boost::shared_array<Sample> > _mixdown_buffers;
 	static std::vector<boost::shared_array<gain_t> > _gain_buffers;
-	static Glib::Threads::Mutex    _level_buffer_lock;
+	static std::mutex    _level_buffer_lock;
 
 	std::string         _peakpath;
 
@@ -144,8 +143,8 @@ class LIBARDOUR_API AudioSource : virtual public Source, public ARDOUR::AudioRea
 	 *  PeaksReady means that _peaks_built cannot be changed
 	 *  during the handling of the signal.
 	 */
-        mutable Glib::Threads::Mutex _peaks_ready_lock;
-        Glib::Threads::Mutex _initialize_peaks_lock;
+        mutable std::mutex _peaks_ready_lock;
+        std::mutex _initialize_peaks_lock;
 
 	int        _peakfile_fd;
 	samplecnt_t peak_leftover_cnt;

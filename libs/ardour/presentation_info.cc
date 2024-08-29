@@ -47,7 +47,7 @@ using std::string;
 string PresentationInfo::state_node_name = X_("PresentationInfo");
 
 PBD::Signal1<void,PropertyChange const &> PresentationInfo::Change;
-Glib::Threads::Mutex PresentationInfo::static_signal_lock;
+std::mutex PresentationInfo::static_signal_lock;
 std::atomic<int> PresentationInfo::_change_signal_suspended (0);
 PBD::PropertyChange PresentationInfo::_pending_static_changes;
 int PresentationInfo::selection_counter= 0;
@@ -70,7 +70,7 @@ PresentationInfo::suspend_change_signal ()
 void
 PresentationInfo::unsuspend_change_signal ()
 {
-	Glib::Threads::Mutex::Lock lm (static_signal_lock);
+	std::unique_lock<std::mutex> lm (static_signal_lock);
 
 	if (PBD::atomic_dec_and_test (_change_signal_suspended)) {
 
@@ -88,9 +88,9 @@ PresentationInfo::unsuspend_change_signal ()
 			 * states, the signal for that won't be sent while they
 			 * are handling the current signal.
 			 */
-			lm.release ();
+			lm.unlock ();
 			Change (pc); /* EMIT SIGNAL */
-			lm.acquire ();
+			lm.lock ();
 		}
 	}
 }
@@ -104,7 +104,7 @@ PresentationInfo::send_static_change (const PropertyChange& what_changed)
 
 
 	if (_change_signal_suspended.load ()) {
-		Glib::Threads::Mutex::Lock lm (static_signal_lock);
+		std::lock_guard<std::mutex> lm (static_signal_lock);
 		_pending_static_changes.add (what_changed);
 		return;
 	}

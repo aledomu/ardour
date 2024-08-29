@@ -19,6 +19,7 @@
 #ifndef _WAVEVIEW_WAVE_VIEW_PRIVATE_H_
 #define _WAVEVIEW_WAVE_VIEW_PRIVATE_H_
 
+#include <condition_variable>
 #include <deque>
 
 #include "pbd/pthread_utils.h"
@@ -340,8 +341,8 @@ private:
 	WaveViewThreadList _threads;
 
 
-	mutable Glib::Threads::Mutex _queue_mutex;
-	Glib::Threads::Cond _cond;
+	std::unique_lock<std::mutex> _queue_mutex;
+	std::condition_variable _cond;
 
 	typedef std::deque<std::shared_ptr<WaveViewDrawRequest> > DrawRequestQueueType;
 	DrawRequestQueueType _queue;

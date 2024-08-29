@@ -28,8 +28,6 @@
 #include <string>
 #include <set>
 
-#include <glibmm/threads.h>
-
 #include "pbd/statefuldestructible.h"
 
 #include "ardour/ardour.h"
@@ -172,7 +170,7 @@ public:
 	SegmentDescriptors segment_descriptors;
 
 	mutable Glib::Threads::RWLock _lock;
-	mutable Glib::Threads::Mutex _analysis_lock;
+	mutable std::mutex _analysis_lock;
 
   private:
 	void fix_writable_flags ();

@@ -21,8 +21,6 @@
 #ifndef __ardour_midi_state_tracker_h__
 #define __ardour_midi_state_tracker_h__
 
-#include <glibmm/threads.h>
-
 #include "temporal/beats.h"
 #include "ardour/midi_buffer.h"
 #include "ardour/source.h"

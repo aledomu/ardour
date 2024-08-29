@@ -49,8 +49,6 @@
 
 #include <boost/dynamic_bitset.hpp>
 #include <boost/scoped_ptr.hpp>
-#include <glibmm/threads.h>
-
 #include <ltc.h>
 
 #include "pbd/atomic.h"
@@ -1638,9 +1636,9 @@ private:
 	volatile bool      _save_queued;
 	volatile bool      _save_queued_pending;
 
-	Glib::Threads::Mutex save_state_lock;
-	Glib::Threads::Mutex save_source_lock;
-	Glib::Threads::Mutex peak_cleanup_lock;
+	std::mutex save_state_lock;
+	std::mutex save_source_lock;
+	std::mutex peak_cleanup_lock;
 
 	int        load_options (const XMLNode&);
 	int        load_state (std::string snapshot_name, bool from_template = false);
@@ -1660,7 +1658,7 @@ private:
 	PBD::ReallocPool _mempool;
 #endif
 	LuaState lua;
-	mutable Glib::Threads::Mutex lua_lock;
+	mutable std::mutex lua_lock;
 	luabridge::LuaRef * _lua_run;
 	luabridge::LuaRef * _lua_add;
 	luabridge::LuaRef * _lua_del;
@@ -1800,10 +1798,10 @@ private:
 		ChanCount output_offset;
 	};
 
-	Glib::Threads::Mutex  _update_latency_lock;
+	std::mutex  _update_latency_lock;
 
 	typedef std::queue<AutoConnectRequest> AutoConnectQueue;
-	Glib::Threads::Mutex _auto_connect_queue_lock;
+	std::mutex _auto_connect_queue_lock;
 	AutoConnectQueue     _auto_connect_queue;
 	std::atomic<unsigned int>   _latency_recompute_pending;
 
@@ -2013,7 +2011,7 @@ private:
 
 	/* REGION MANAGEMENT */
 
-	mutable Glib::Threads::Mutex region_lock;
+	mutable std::mutex region_lock;
 
 	int load_regions (const XMLNode& node);
 	int load_compounds (const XMLNode& node);
@@ -2024,7 +2022,7 @@ private:
 
 	/* SOURCES */
 
-	mutable Glib::Threads::Mutex source_lock;
+	mutable std::mutex source_lock;
 
 public:
 
@@ -2035,7 +2033,7 @@ public:
 	typedef std::map<PBD::ID,std::shared_ptr<Source> > SourceMap;
 
 	void foreach_source (boost::function<void( std::shared_ptr<Source> )> f) {
-		Glib::Threads::Mutex::Lock ls (source_lock);
+		std::lock_guard<std::mutex> ls (source_lock);
 		for (SourceMap::iterator i = sources.begin(); i != sources.end(); ++i) {
 			f ( (*i).second );
 		}
@@ -2125,7 +2123,7 @@ private:
 	    could not report free space.
 	*/
 	bool _total_free_4k_blocks_uncertain;
-	Glib::Threads::Mutex space_lock;
+	std::mutex space_lock;
 
 	bool no_questions_about_missing_files;
 
@@ -2242,7 +2240,7 @@ private:
 	int find_all_sources_across_snapshots (std::set<std::string>& result, bool exclude_this_snapshot);
 
 	typedef std::set<std::shared_ptr<PBD::Controllable> > Controllables;
-	Glib::Threads::Mutex controllables_lock;
+	std::mutex controllables_lock;
 	Controllables controllables;
 
 	std::shared_ptr<PBD::Controllable> _solo_cut_control;

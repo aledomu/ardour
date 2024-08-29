@@ -515,7 +515,7 @@ UI::do_request (UIRequest* req)
 void
 UI::dump_errors (std::ostream& ostr, size_t limit)
 {
-	Glib::Threads::Mutex::Lock lm (error_lock);
+	std::lock_guard<std::mutex> lm (error_lock);
 	bool first = true;
 
 	if (limit > 0) {
@@ -557,7 +557,7 @@ void
 UI::receive (Transmitter::Channel chn, const char *str)
 {
 	{
-		Glib::Threads::Mutex::Lock lm (error_lock);
+		std::lock_guard<std::mutex> lm (error_lock);
 		switch (chn) {
 		case Transmitter::Fatal:
 			error_stack.push_back (string (X_("FATAL: ")) + str);

@@ -22,8 +22,8 @@
 #ifndef EVORAL_SMF_HPP
 #define EVORAL_SMF_HPP
 
-#include <glibmm/threads.h>
 #include <set>
+#include <mutex>
 
 #include "evoral/visibility.h"
 #include "evoral/types.h"
@@ -141,7 +141,7 @@ public:
 	smf_track_t* _smf_track;
 	bool         _empty; ///< true iff file contains(non-empty) events
 
-	mutable Glib::Threads::Mutex _smf_lock;
+	mutable std::mutex _smf_lock;
 
 	mutable Markers _markers;
 

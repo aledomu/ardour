@@ -19,14 +19,13 @@
 #ifndef __libardour_buffer_manager__
 #define __libardour_buffer_manager__
 
+#include <mutex>
 #include <stdint.h>
 
 #include "pbd/ringbufferNPT.h"
 
 #include "ardour/chan_count.h"
 #include <list>
-#include <glibmm/threads.h>
-
 namespace ARDOUR {
 
 class ThreadBuffers;
@@ -42,7 +41,7 @@ public:
 	static void ensure_buffers (ChanCount howmany = ChanCount::ZERO, size_t custom = 0);
 
 private:
-	static Glib::Threads::Mutex rb_mutex;
+	static std::mutex rb_mutex;
 
 	typedef PBD::RingBufferNPT<ThreadBuffers*> ThreadBufferFIFO;
 	typedef std::list<ThreadBuffers*> ThreadBufferList;

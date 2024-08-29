@@ -35,8 +35,6 @@
 
 #include <boost/foreach.hpp>
 
-#include <glibmm/threads.h>
-
 #include <gtkmm/accelmap.h>
 #include <gtkmm/menu.h>
 #include <gtkmm/offscreenwindow.h>

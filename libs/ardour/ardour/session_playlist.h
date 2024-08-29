@@ -30,7 +30,7 @@ namespace ARDOUR {
 template<class T> void
 SessionPlaylists::foreach (T *obj, void (T::*func)(std::shared_ptr<Playlist>))
 {
-	Glib::Threads::Mutex::Lock lm (lock);
+	std::lock_guard<std::mutex> lm (lock);
 	for (PlaylistSet::iterator i = playlists.begin(); i != playlists.end(); i++) {
 		if (!(*i)->hidden()) {
 			(obj->*func) (*i);

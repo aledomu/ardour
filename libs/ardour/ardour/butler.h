@@ -24,10 +24,9 @@
 #define __ardour_butler_h__
 
 #include <atomic>
+#include <condition_variable>
 
 #include <pthread.h>
-
-#include <glibmm/threads.h>
 
 #include "pbd/crossthread.h"
 #include "pbd/pool.h"
@@ -107,8 +106,8 @@ private:
 	pthread_t thread;
 	bool      have_thread;
 
-	Glib::Threads::Mutex request_lock;
-	Glib::Threads::Cond  paused;
+	std::mutex request_lock;
+	std::condition_variable  paused;
 	bool                 should_run;
 
 	samplecnt_t _audio_capture_buffer_size;

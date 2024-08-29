@@ -28,7 +28,7 @@
 namespace ARDOUR {
 
 bool                 SystemExec::_initialized = false;
-Glib::Threads::Mutex SystemExec::_init_mutex;
+std::mutex SystemExec::_init_mutex;
 std::string          SystemExec::_vfork_exec;
 
 void
@@ -38,7 +38,7 @@ SystemExec::initialize ()
 		return;
 	}
 #ifndef PLATFORM_WINDOWS
-	Glib::Threads::Mutex::Lock lk (_init_mutex);
+	std::lock_guard<std::mutex> lk (_init_mutex);
 	if (_initialized) {
 		return;
 	}

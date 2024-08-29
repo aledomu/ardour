@@ -21,8 +21,6 @@
 #include <memory>
 #include <vector>
 
-#include <glibmm/threads.h>
-
 #include "pbd/signals.h"
 #include "ardour/libardour_visibility.h"
 
@@ -146,7 +144,7 @@ private:
 	LuaScriptList *_sl_tracks;
 	LuaScriptList  _empty_script_info;
 
-	Glib::Threads::Mutex _lock;
+	std::mutex _lock;
 };
 
 } // namespace ARDOUR

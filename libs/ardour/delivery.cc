@@ -204,7 +204,7 @@ bool
 Delivery::configure_io (ChanCount in, ChanCount out)
 {
 #ifndef NDEBUG
-	bool r = AudioEngine::instance()->process_lock().trylock();
+	bool r = AudioEngine::instance()->process_lock().try_lock();
 	assert (!r && "trylock inside Delivery::configure_io");
 #endif
 

@@ -20,8 +20,6 @@
 #ifndef __libardour_midi_scene_changer_h__
 #define __libardour_midi_scene_changer_h__
 
-#include <glibmm/threads.h>
-
 #include "ardour/scene_changer.h"
 
 namespace ARDOUR

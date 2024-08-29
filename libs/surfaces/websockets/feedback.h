@@ -22,8 +22,6 @@
 #include <memory>
 
 #include <boost/unordered_map.hpp>
-#include <glibmm/threads.h>
-
 #include "pbd/abstract_ui.h"
 
 #include "component.h"
@@ -58,7 +56,7 @@ public:
 	void update_all (std::string, uint32_t, uint32_t, uint32_t, TypedValue) const;
 
 private:
-	Glib::Threads::Mutex      _client_state_lock;
+	std::mutex      _client_state_lock;
 	PBD::ScopedConnectionList _transport_connections;
 	sigc::connection          _periodic_connection;
 

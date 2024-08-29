@@ -52,7 +52,7 @@ private:
 	/** sends that we are receiving data from */
 	std::list<InternalSend*> _sends;
 	/** mutex to protect _sends */
-	Glib::Threads::Mutex _sends_mutex;
+	std::mutex _sends_mutex;
 };
 
 } // namespace ARDOUR

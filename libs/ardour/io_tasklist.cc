@@ -164,13 +164,13 @@ IOTaskList::io_thread ()
 
 		while (1) {
 			boost::function<void()> fn;
-			Glib::Threads::Mutex::Lock lm (_tasks_mutex);
+			std::unique_lock<std::mutex> lm (_tasks_mutex);
 			if (_tasks.empty ()) {
 				break;
 			}
 			fn = _tasks.back ();
 			_tasks.pop_back ();
-			lm.release ();
+			lm.unlock ();
 
 			fn ();
 		}

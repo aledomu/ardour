@@ -376,9 +376,9 @@ Amp::set_state (const XMLNode& node, int version)
 void
 Amp::setup_gain_automation (samplepos_t start_sample, samplepos_t end_sample, samplecnt_t nframes)
 {
-	Glib::Threads::Mutex::Lock am (control_lock(), Glib::Threads::TRY_LOCK);
+	std::unique_lock<std::mutex> am (control_lock(), std::defer_lock);
 
-	if (am.locked()
+	if (am.try_lock()
 	    && (_session.transport_rolling() || _session.bounce_processing())
 	    && _gain_control->automation_playback())
 	{

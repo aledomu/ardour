@@ -126,7 +126,7 @@ ExportHandler::ExportHandler (Session & session)
 ExportHandler::~ExportHandler ()
 {
 	if (export_status->aborted () && !current_timespan->vapor ().empty () && session.surround_master ()) {
-		Glib::Threads::Mutex::Lock l (export_status->lock());
+		std::lock_guard<std::mutex> l (export_status->lock());
 		session.surround_master ()->surround_return ()->finalize_export ();
 	}
 	graph_builder->cleanup (export_status->aborted () );
@@ -169,7 +169,7 @@ ExportHandler::do_export ()
 
 	/* Start export */
 
-	Glib::Threads::Mutex::Lock l (export_status->lock());
+	std::lock_guard<std::mutex> l (export_status->lock());
 	return start_timespan ();
 }
 
@@ -283,7 +283,7 @@ ExportHandler::process (samplecnt_t samples)
 	if (!export_status->running ()) {
 		return 0;
 	} else if (post_processing) {
-		Glib::Threads::Mutex::Lock l (export_status->lock());
+		std::lock_guard<std::mutex> l (export_status->lock());
 		if (AudioEngine::instance()->freewheeling ()) {
 			return post_process ();
 		} else {
@@ -291,7 +291,7 @@ ExportHandler::process (samplecnt_t samples)
 			return 0;
 		}
 	} else if (samples > 0) {
-		Glib::Threads::Mutex::Lock l (export_status->lock());
+		std::lock_guard<std::mutex> l (export_status->lock());
 		return process_timespan (samples);
 	}
 	return 0;
@@ -380,7 +380,7 @@ ExportHandler::start_timespan_bg (void* eh)
 	pthread_set_name (name);
 	ExportHandler* self = static_cast<ExportHandler*> (eh);
 	self->process_connection.disconnect ();
-	Glib::Threads::Mutex::Lock l (self->export_status->lock());
+	std::lock_guard<std::mutex> l (self->export_status->lock());
 	SessionEvent::create_per_thread_pool (name, 512);
 	DiskReader::allocate_working_buffers ();
 	self->start_timespan ();

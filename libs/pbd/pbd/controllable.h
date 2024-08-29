@@ -29,8 +29,6 @@
 
 #include "pbd/libpbd_visibility.h"
 #include "pbd/signals.h"
-#include <glibmm/threads.h>
-
 
 #include "pbd/statefuldestructible.h"
 

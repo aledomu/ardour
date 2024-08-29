@@ -8,8 +8,6 @@
 #include <pthread.h>
 #include <usb.h>
 
-#include <glibmm/threads.h>
-
 #include "ardour/types.h"
 
 #include "control_protocol/control_protocol.h"
@@ -130,7 +128,7 @@ class TranzportControlProtocol : public ARDOUR::ControlProtocol
 
 	ARDOUR::gain_t  gain_fraction;
 
-        Glib::Threads::Mutex update_lock;
+        std::mutex update_lock;
 
 	bool screen_invalid[2][20];
 	char screen_current[2][20];

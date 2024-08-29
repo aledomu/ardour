@@ -30,8 +30,6 @@
 #include <utility>
 #include <vector>
 
-#include <glibmm/threads.h>
-
 #include "evoral/visibility.h"
 #include "evoral/Note.h"
 #include "evoral/ControlSet.h"
@@ -73,15 +71,15 @@ public:
 
 protected:
 	struct WriteLockImpl {
-		WriteLockImpl(Glib::Threads::RWLock& s, Glib::Threads::Mutex& c)
+		WriteLockImpl(Glib::Threads::RWLock& s, std::mutex& c)
 			: sequence_lock(new Glib::Threads::RWLock::WriterLock(s))
-			, control_lock(new Glib::Threads::Mutex::Lock(c)) { }
+			, control_lock(new std::lock_guard(c)) { }
 		~WriteLockImpl() {
 			delete sequence_lock;
 			delete control_lock;
 		}
 		Glib::Threads::RWLock::WriterLock* sequence_lock;
-		Glib::Threads::Mutex::Lock*        control_lock;
+		std::lock_guard<std::mutex>*        control_lock;
 	};
 
 public:

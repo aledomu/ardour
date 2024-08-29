@@ -34,9 +34,9 @@ using namespace std;
 using namespace ARDOUR;
 using namespace PBD;
 
-Glib::Threads::Mutex          Analyser::analysis_active_lock;
-Glib::Threads::Mutex          Analyser::analysis_queue_lock;
-Glib::Threads::Cond           Analyser::SourcesToAnalyse;
+std::mutex          Analyser::analysis_active_lock;
+std::mutex          Analyser::analysis_queue_lock;
+std::condition_variable           Analyser::SourcesToAnalyse;
 list<std::weak_ptr<Source>> Analyser::analysis_queue;
 bool                          Analyser::analysis_thread_run = false;
 PBD::Thread*                  Analyser::analysis_thread     = 0;
@@ -62,7 +62,7 @@ Analyser::terminate ()
 		return;
 	}
 	analysis_thread_run = false;
-	SourcesToAnalyse.broadcast ();
+	SourcesToAnalyse.notify_all ();
 	analysis_thread->join ();
 }
 
@@ -77,9 +77,9 @@ Analyser::queue_source_for_analysis (std::shared_ptr<Source> src, bool force)
 		return;
 	}
 
-	Glib::Threads::Mutex::Lock lm (analysis_queue_lock);
+	std::lock_guard<std::mutex> lm (analysis_queue_lock);
 	analysis_queue.push_back (std::weak_ptr<Source> (src));
-	SourcesToAnalyse.broadcast ();
+	SourcesToAnalyse.notify_all ();
 }
 
 void
@@ -88,15 +88,15 @@ Analyser::work ()
 	SessionEvent::create_per_thread_pool ("Analyser", 64);
 
 	while (true) {
-		analysis_queue_lock.lock ();
+		std::unique_lock<std::mutex> aqlm (analysis_queue_lock);
 
 	wait:
 		if (analysis_queue.empty () && analysis_thread_run) {
-			SourcesToAnalyse.wait (analysis_queue_lock);
+			SourcesToAnalyse.wait (aqlm);
 		}
 
 		if (!analysis_thread_run) {
-			analysis_queue_lock.unlock ();
+			aqlm.unlock ();
 			break;
 		}
 
@@ -111,7 +111,7 @@ Analyser::work ()
 		std::shared_ptr<AudioFileSource> afs = std::dynamic_pointer_cast<AudioFileSource> (src);
 
 		if (afs && !afs->empty ()) {
-			Glib::Threads::Mutex::Lock lm (analysis_active_lock);
+			std::lock_guard<std::mutex> lm (analysis_active_lock);
 			analyse_audio_file_source (afs);
 		}
 	}
@@ -141,7 +141,7 @@ Analyser::analyse_audio_file_source (std::shared_ptr<AudioFileSource> src)
 void
 Analyser::flush ()
 {
-	Glib::Threads::Mutex::Lock lq (analysis_queue_lock);
-	Glib::Threads::Mutex::Lock la (analysis_active_lock);
+	std::lock_guard<std::mutex> lq (analysis_queue_lock);
+	std::lock_guard<std::mutex> la (analysis_active_lock);
 	analysis_queue.clear ();
 }

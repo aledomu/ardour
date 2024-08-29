@@ -20,6 +20,7 @@
 #ifndef __ardour_analyser_h__
 #define __ardour_analyser_h__
 
+#include <condition_variable>
 #include <memory>
 
 #include "ardour/libardour_visibility.h"
@@ -42,9 +43,9 @@ public:
 	static void flush ();
 
 private:
-	static Glib::Threads::Mutex               analysis_active_lock;
-	static Glib::Threads::Mutex               analysis_queue_lock;
-	static Glib::Threads::Cond                SourcesToAnalyse;
+	static std::mutex               analysis_active_lock;
+	static std::mutex               analysis_queue_lock;
+	static std::condition_variable  SourcesToAnalyse;
 	static std::list<std::weak_ptr<Source>> analysis_queue;
 	static bool                               analysis_thread_run;
 	static PBD::Thread*                       analysis_thread;

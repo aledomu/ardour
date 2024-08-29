@@ -18,6 +18,7 @@
  */
 
 #include <cmath>
+#include <mutex>
 #include "ardour/lmath.h"
 
 #include "pbd/assert.h"
@@ -258,6 +259,8 @@ WaveViewCache::set_image_cache_threshold (uint64_t sz)
 WaveViewThreads::WaveViewThreads ()
 	: _quit (false)
 {
+	std::mutex inner_queue_mutex;
+	_queue_mutex = std::unique_lock(inner_queue_mutex, std::defer_lock);
 }
 
 WaveViewThreads::~WaveViewThreads ()
@@ -299,10 +302,10 @@ WaveViewThreads::enqueue_draw_request (std::shared_ptr<WaveViewDrawRequest>& req
 void
 WaveViewThreads::_enqueue_draw_request (std::shared_ptr<WaveViewDrawRequest>& request)
 {
-	Glib::Threads::Mutex::Lock lm (_queue_mutex);
+	std::lock_guard<std::unique_lock<std::mutex>> lm (_queue_mutex);
 	_queue.push_back (request);
 	/* wake one (random) thread */
-	_cond.signal ();
+	_cond.notify_one ();
 }
 
 std::shared_ptr<WaveViewDrawRequest>
@@ -316,8 +319,7 @@ std::shared_ptr<WaveViewDrawRequest>
 WaveViewThreads::_dequeue_draw_request ()
 {
 	/* _queue_mutex must be held at this point */
-
-	assert (!_queue_mutex.trylock());
+	assert (!_queue_mutex.try_lock());
 
 	if (_queue.empty()) {
 		_cond.wait (_queue_mutex);
@@ -363,9 +365,9 @@ WaveViewThreads::stop_threads ()
 	assert (_threads.size());
 
 	{
-		Glib::Threads::Mutex::Lock lm (_queue_mutex);
+		std::lock_guard<std::unique_lock<std::mutex>> lm (_queue_mutex);
 		_quit = true;
-		_cond.broadcast ();
+		_cond.notify_all ();
 	}
 
 	/* Deleting the WaveViewThread objects will force them to join() with

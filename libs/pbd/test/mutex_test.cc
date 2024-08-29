@@ -11,7 +11,7 @@ MutexTest::MutexTest ()
 void
 MutexTest::testBasic ()
 {
-	Glib::Threads::Mutex::Lock lm (m_mutex);
+	std::lock_guard<std::mutex> lm (m_mutex);
 
 	CPPUNIT_ASSERT (lm.locked());
 
@@ -19,6 +19,6 @@ MutexTest::testBasic ()
 	 * on win32 as TryEnterCriticalSection is used and it will return true
 	 * as CriticalSection is reentrant and fail the assertion.
 	 */
-	CPPUNIT_ASSERT (!m_mutex.trylock());
+	CPPUNIT_ASSERT (!m_mutex.try_lock());
 
 }

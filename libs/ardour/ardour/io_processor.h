@@ -25,8 +25,6 @@
 #include <memory>
 #include <string>
 
-#include <glibmm/threads.h>
-
 #include "pbd/undo.h"
 
 #include "ardour/ardour.h"

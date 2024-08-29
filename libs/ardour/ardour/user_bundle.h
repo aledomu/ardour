@@ -21,7 +21,6 @@
 #define __ardour_user_bundle_h__
 
 #include <vector>
-#include <glibmm/threads.h>
 #include "pbd/stateful.h"
 #include "ardour/bundle.h"
 

@@ -907,7 +907,7 @@ ExportGraphBuilder::Intermediate::start_post_processing()
 	 * RT Stem export has multiple TmpFileRt threads,
 	 * prevent concurrent calls to enable freewheel ()
 	 */
-	Glib::Threads::Mutex::Lock lm (parent.engine_request_lock);
+	std::lock_guard<std::mutex> lm (parent.engine_request_lock);
 	if (!AudioEngine::instance()->freewheeling ()) {
 		AudioEngine::instance()->freewheel (true);
 		while (!AudioEngine::instance()->freewheeling ()) {

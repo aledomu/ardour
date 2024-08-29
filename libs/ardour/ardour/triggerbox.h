@@ -27,8 +27,6 @@
 #include <string>
 #include <exception>
 
-#include <glibmm/threads.h>
-
 #include "pbd/crossthread.h"
 #include "pbd/pcg_rand.h"
 #include "pbd/pool.h"

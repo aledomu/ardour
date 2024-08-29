@@ -446,7 +446,7 @@ PannerShell::select_panner_by_uri (std::string const uri)
 	if (uri == _current_panner_uri) return false;
 	_force_reselect = true;
 	if (_panner) {
-		Glib::Threads::Mutex::Lock lx (AudioEngine::instance()->process_lock ());
+		std::lock_guard<std::mutex> lx (AudioEngine::instance()->process_lock ());
 			ChanCount in = _panner->in();
 			ChanCount out = _panner->out();
 			configure_io(in, out);
@@ -479,7 +479,7 @@ PannerShell::set_linked_to_route (bool onoff)
 
 	_force_reselect = true;
 	if (_panner) {
-		Glib::Threads::Mutex::Lock lx (AudioEngine::instance()->process_lock ());
+		std::lock_guard<std::mutex> lx (AudioEngine::instance()->process_lock ());
 			ChanCount in = _panner->in();
 			ChanCount out = _panner->out();
 			configure_io(in, out);

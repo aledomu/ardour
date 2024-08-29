@@ -115,7 +115,7 @@ Graph::reset_thread_list ()
 		return;
 	}
 
-	Glib::Threads::Mutex::Lock lm (_session.engine ().process_lock ());
+	std::lock_guard<std::mutex> lm (_session.engine ().process_lock ());
 
 	if (n_workers > 0) {
 		drop_threads ();

@@ -602,7 +602,7 @@ class Push2 : public MIDISurface
 
 	/* Layouts */
 
-	mutable Glib::Threads::Mutex layout_lock;
+	mutable std::mutex layout_lock;
 	Push2Layout* _current_layout;
 	Push2Layout* _previous_layout;
 	Push2Layout* _mix_layout;

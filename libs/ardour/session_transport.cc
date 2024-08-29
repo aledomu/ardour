@@ -1151,9 +1151,9 @@ Session::butler_transport_work (bool have_process_lock)
 	if (ptw & PostTransportAdjustPlaybackBuffering) {
 		/* need to prevent concurrency with ARDOUR::Reader::run(),
 		 * DiskWriter::adjust_buffering() re-allocates the ringbuffer */
-		Glib::Threads::Mutex::Lock lx (AudioEngine::instance()->process_lock (), Glib::Threads::NOT_LOCK);
+		std::unique_lock<std::mutex> lx (AudioEngine::instance()->process_lock (), std::defer_lock);
 		if (!have_process_lock) {
-			lx.acquire ();
+			lx.lock ();
 		}
 		std::shared_ptr<IOTaskList> tl = io_tasklist ();
 		for (auto const& i : *r) {
@@ -1175,9 +1175,9 @@ Session::butler_transport_work (bool have_process_lock)
 	if (ptw & PostTransportAdjustCaptureBuffering) {
 		/* need to prevent concurrency with ARDOUR::DiskWriter::run(),
 		 * DiskWriter::adjust_buffering() re-allocates the ringbuffer */
-		Glib::Threads::Mutex::Lock lx (AudioEngine::instance()->process_lock (), Glib::Threads::NOT_LOCK);
+		std::unique_lock<std::mutex> lx (AudioEngine::instance()->process_lock (), std::defer_lock);
 		if (!have_process_lock) {
-			lx.acquire ();
+			lx.lock ();
 		}
 		for (auto const& i : *r) {
 			std::shared_ptr<Track> tr = std::dynamic_pointer_cast<Track> (i);

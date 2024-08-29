@@ -21,6 +21,7 @@
 #ifndef __gtk_ardour_gui_object_h__
 #define __gtk_ardour_gui_object_h__
 
+#include <list>
 #include <map>
 #include <string>
 

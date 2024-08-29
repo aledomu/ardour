@@ -212,7 +212,7 @@ AudioEngine::sample_rate_change (pframes_t nframes)
 int
 AudioEngine::buffer_size_change (pframes_t bufsiz)
 {
-	Glib::Threads::Mutex::Lock pl (_process_lock);
+	std::lock_guard<std::mutex> pl (_process_lock);
 	set_port_buffer_sizes (bufsiz);
 
 	if (_session) {
@@ -235,7 +235,7 @@ int
 AudioEngine::process_callback (pframes_t nframes)
 {
 	TimerRAII tr (dsp_stats[ProcessCallback]);
-	Glib::Threads::Mutex::Lock tm (_process_lock, Glib::Threads::TRY_LOCK);
+	std::unique_lock<std::mutex> tm (_process_lock, std::try_to_lock);
 	Port::set_varispeed_ratio (1.0);
 
 	PT_TIMING_REF;
@@ -257,7 +257,7 @@ AudioEngine::process_callback (pframes_t nframes)
 		next_processed_samples = _processed_samples + nframes;
 	}
 
-	if (!tm.locked()) {
+	if (!tm.owns_lock()) {
 		/* return having done nothing */
 		if (_session) {
 			Xrun (); /* EMIT SIGNAL */
@@ -319,9 +319,9 @@ AudioEngine::process_callback (pframes_t nframes)
 			 * This lock is not contended by this thread, but acts
 			 * as barrier for Session::block_processing (Session::write_one_track).
 			 */
-			Glib::Threads::Mutex::Lock ll (_latency_lock, Glib::Threads::TRY_LOCK);
+			std::unique_lock<std::mutex> ll (_latency_lock, std::defer_lock);
 			/* re-check after talking latency-lock */
-			if (!ll.locked () || _session->processing_blocked ()) {
+			if (!ll.try_lock () || _session->processing_blocked ()) {
 				if (lc) {
 					queue_latency_update (false);
 				}
@@ -342,7 +342,7 @@ AudioEngine::process_callback (pframes_t nframes)
 				/* this should not be able to fail, but it is good practice
 				 * to only use try-lock in the process callback.
 				 */
-				if (!tm.try_acquire ()) {
+				if (!tm.try_lock ()) {
 					Xrun (); /* EMIT SIGNAL */
 					return 0; // XXX or spin?
 				}
@@ -466,7 +466,7 @@ AudioEngine::process_callback (pframes_t nframes)
 			SessionHandlePtr::set_session (0);
 			session_removal_countdown = -1; // reset to "not in progress"
 			session_remove_pending = false;
-			session_removed.signal(); // wakes up thread that initiated session removal
+			session_removed.notify_one(); // wakes up thread that initiated session removal
 		}
 	}
 
@@ -663,9 +663,9 @@ AudioEngine::launch_device_control_app()
 void
 AudioEngine::request_backend_reset()
 {
-	Glib::Threads::Mutex::Lock guard (_reset_request_lock);
+	std::lock_guard<std::mutex> guard (_reset_request_lock);
 	_hw_reset_request_count.fetch_add (1);
-	_hw_reset_condition.signal ();
+	_hw_reset_condition.notify_one ();
 }
 
 int
@@ -680,13 +680,13 @@ AudioEngine::do_reset_backend()
 	SessionEvent::create_per_thread_pool (X_("Backend reset processing thread"), 1024);
 	pthread_set_name ("EngineWatchdog");
 
-	Glib::Threads::Mutex::Lock guard (_reset_request_lock);
+	std::unique_lock<std::mutex> rrlm (_reset_request_lock);
 
 	while (!_stop_hw_reset_processing.load ()) {
 
 		if (_hw_reset_request_count.load () != 0 && _backend) {
 
-			_reset_request_lock.unlock();
+			rrlm.unlock();
 
 			Glib::Threads::RecMutex::Lock pl (_state_lock);
 			PBD::atomic_dec_and_test (_hw_reset_request_count);
@@ -717,11 +717,11 @@ AudioEngine::do_reset_backend()
 
 			std::cout << "AudioEngine::RESET::Done." << std::endl;
 
-			_reset_request_lock.lock();
+			rrlm.lock();
 
 		} else {
 
-			_hw_reset_condition.wait (_reset_request_lock);
+			_hw_reset_condition.wait (rrlm);
 
 		}
 	}
@@ -730,9 +730,9 @@ AudioEngine::do_reset_backend()
 void
 AudioEngine::request_device_list_update()
 {
-	Glib::Threads::Mutex::Lock guard (_devicelist_update_lock);
+	std::lock_guard<std::mutex> guard (_devicelist_update_lock);
 	_hw_devicelist_update_count.fetch_add (1);
-	_hw_devicelist_update_condition.signal ();
+	_hw_devicelist_update_condition.notify_one ();
 }
 
 void
@@ -741,23 +741,23 @@ AudioEngine::do_devicelist_update()
 	SessionEvent::create_per_thread_pool (X_("Device list update processing thread"), 512);
 	pthread_set_name ("DeviceList");
 
-	Glib::Threads::Mutex::Lock guard (_devicelist_update_lock);
+	std::unique_lock<std::mutex> dlulm (_reset_request_lock);
 
 	while (!_stop_hw_devicelist_processing) {
 
 		if (_hw_devicelist_update_count.load ()) {
 
-			_devicelist_update_lock.unlock();
+			dlulm.unlock();
 
 			Glib::Threads::RecMutex::Lock pl (_state_lock);
 
 			PBD::atomic_dec_and_test (_hw_devicelist_update_count);
 			DeviceListChanged (); /* EMIT SIGNAL */
 
-			_devicelist_update_lock.lock();
+			dlulm.lock();
 
 		} else {
-			_hw_devicelist_update_condition.wait (_devicelist_update_lock);
+			_hw_devicelist_update_condition.wait (dlulm);
 		}
 	}
 }
@@ -786,7 +786,7 @@ AudioEngine::stop_hw_event_processing()
 	if (_hw_reset_event_thread) {
 		_stop_hw_reset_processing.store (1);
 		_hw_reset_request_count.store (0);
-		_hw_reset_condition.signal ();
+		_hw_reset_condition.notify_one ();
 		_hw_reset_event_thread->join ();
 		_hw_reset_event_thread = 0;
 	}
@@ -794,7 +794,7 @@ AudioEngine::stop_hw_event_processing()
 	if (_hw_devicelist_update_thread) {
 		_stop_hw_devicelist_processing.store (1);
 		_hw_devicelist_update_count.store (0);
-		_hw_devicelist_update_condition.signal ();
+		_hw_devicelist_update_condition.notify_one ();
 		_hw_devicelist_update_thread->join ();
 		_hw_devicelist_update_thread = 0;
 	}
@@ -803,7 +803,7 @@ AudioEngine::stop_hw_event_processing()
 void
 AudioEngine::set_session (Session *s)
 {
-	Glib::Threads::Mutex::Lock pl (_process_lock);
+	std::lock_guard<std::mutex> pl (_process_lock);
 
 	SessionHandlePtr::set_session (s);
 
@@ -818,7 +818,7 @@ AudioEngine::set_session (Session *s)
 void
 AudioEngine::remove_session ()
 {
-	Glib::Threads::Mutex::Lock lm (_process_lock);
+	std::unique_lock<std::mutex> plm (_process_lock);
 
 	if (_running) {
 
@@ -826,7 +826,7 @@ AudioEngine::remove_session ()
 			session_remove_pending = true;
 			/* signal the start of the fade out countdown */
 			session_removal_countdown = -1;
-			session_removed.wait(_process_lock);
+			session_removed.wait(plm);
 		}
 
 	} else {
@@ -1110,10 +1110,10 @@ AudioEngine::stop (bool for_latency)
 		return 0;
 	}
 
-	Glib::Threads::Mutex::Lock pl (_process_lock, Glib::Threads::NOT_LOCK);
+	std::unique_lock<std::mutex> pl (_process_lock, std::defer_lock);
 
 	if (running()) {
-		pl.acquire ();
+		pl.lock ();
 	}
 
 	if (for_latency && _backend->can_change_systemic_latency_when_running()) {
@@ -1123,15 +1123,15 @@ AudioEngine::stop (bool for_latency)
 		}
 	} else {
 		if (_backend->stop ()) {
-			if (pl.locked ()) {
-				pl.release ();
+			if (pl.owns_lock ()) {
+				pl.unlock ();
 			}
 			return -1;
 		}
 	}
 
-	if (pl.locked ()) {
-		pl.release ();
+	if (pl.owns_lock ()) {
+		pl.unlock ();
 	}
 
 	const bool was_running_will_stop = (_running && stop_engine);
@@ -1501,8 +1501,8 @@ AudioEngine::latency_callback (bool for_playback)
 		 * async to connect/disconnect or port creation/deletion.
 		 * All is fine.
 		 */
-		Glib::Threads::Mutex::Lock ll (_latency_lock, Glib::Threads::TRY_LOCK);
-		if (!ll.locked () || _session->processing_blocked ()) {
+		std::unique_lock<std::mutex> ll (_latency_lock, std::defer_lock);
+		if (!ll.try_lock () || _session->processing_blocked ()) {
 		 /* Except Session::write_one_track() might just have called block_processing() */
 			queue_latency_update (for_playback);
 		} else {

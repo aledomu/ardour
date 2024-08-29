@@ -22,8 +22,6 @@
 #include <atomic>
 #include <boost/function.hpp>
 #include <vector>
-#include <glibmm/threads.h>
-
 #include "pbd/semutils.h"
 
 #include "ardour/libardour_visibility.h"
@@ -54,7 +52,7 @@ private:
 	std::atomic <bool>     _terminate;
 	PBD::Semaphore         _exec_sem;
 	PBD::Semaphore         _idle_sem;
-	Glib::Threads::Mutex   _tasks_mutex;
+	std::mutex   _tasks_mutex;
 };
 
 } // namespace ARDOUR

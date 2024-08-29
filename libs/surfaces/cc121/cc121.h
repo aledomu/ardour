@@ -26,8 +26,6 @@
 #include <list>
 #include <map>
 #include <set>
-#include <glibmm/threads.h>
-
 #define ABSTRACT_UI_EXPORTS
 #include "pbd/abstract_ui.h"
 

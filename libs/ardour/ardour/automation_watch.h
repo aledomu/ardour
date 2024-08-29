@@ -60,7 +60,7 @@ private:
 	bool                    _run_thread;
 	AutomationWatches        automation_watches;
 	AutomationConnection     automation_connections;
-	Glib::Threads::Mutex     automation_watch_lock;
+	std::mutex     automation_watch_lock;
 	PBD::ScopedConnection    transport_connection;
 
 	void transport_state_change ();

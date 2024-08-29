@@ -461,7 +461,7 @@ US2400Protocol::set_active (bool yn)
 bool
 US2400Protocol::hui_heartbeat ()
 {
-	Glib::Threads::Mutex::Lock lm (surfaces_lock);
+	std::lock_guard<std::mutex> lm (surfaces_lock);
 
 	for (Surfaces::iterator s = surfaces.begin(); s != surfaces.end(); ++s) {
 		(*s)->hui_heartbeat ();
@@ -484,7 +484,7 @@ US2400Protocol::periodic ()
 	PBD::microseconds_t now_usecs = PBD::get_microseconds ();
 
 	{
-		Glib::Threads::Mutex::Lock lm (surfaces_lock);
+		std::lock_guard<std::mutex> lm (surfaces_lock);
 
 		for (Surfaces::iterator s = surfaces.begin(); s != surfaces.end(); ++s) {
 			(*s)->periodic (now_usecs);
@@ -511,7 +511,7 @@ US2400Protocol::update_global_button (int id, LedState ls)
 	std::shared_ptr<Surface> surface;
 
 	{
-		Glib::Threads::Mutex::Lock lm (surfaces_lock);
+		std::lock_guard<std::mutex> lm (surfaces_lock);
 
 		if (surfaces.empty()) {
 			return;
@@ -536,7 +536,7 @@ US2400Protocol::update_global_button (int id, LedState ls)
 void
 US2400Protocol::update_global_led (int id, LedState ls)
 {
-	Glib::Threads::Mutex::Lock lm (surfaces_lock);
+	std::lock_guard<std::mutex> lm (surfaces_lock);
 
 	if (surfaces.empty()) {
 		return;
@@ -591,7 +591,7 @@ void
 US2400Protocol::initialize()
 {
 	{
-		Glib::Threads::Mutex::Lock lm (surfaces_lock);
+		std::lock_guard<std::mutex> lm (surfaces_lock);
 
 		if (surfaces.empty()) {
 			return;
@@ -681,7 +681,7 @@ US2400Protocol::set_device (const string& device_name, bool force)
 	*/
 
 	{
-		Glib::Threads::Mutex::Lock lm (surfaces_lock);
+		std::lock_guard<std::mutex> lm (surfaces_lock);
 		if (!surfaces.empty()) {
 			update_configuration_state ();
 		}
@@ -780,7 +780,7 @@ US2400Protocol::create_surfaces ()
 		}
 
 		{
-			Glib::Threads::Mutex::Lock lm (surfaces_lock);
+			std::lock_guard<std::mutex> lm (surfaces_lock);
 			surfaces.push_back (surface);
 		}
 
@@ -812,7 +812,7 @@ US2400Protocol::create_surfaces ()
 		}
 	}
 
-	Glib::Threads::Mutex::Lock lm (surfaces_lock);
+	std::lock_guard<std::mutex> lm (surfaces_lock);
 	for (Surfaces::iterator s = surfaces.begin(); s != surfaces.end(); ++s) {
 		(*s)->port().reconnect ();
 	}
@@ -877,7 +877,7 @@ US2400Protocol::get_state() const
 	node.set_property (X_("device-name"), _device_info.name());
 
 	{
-		Glib::Threads::Mutex::Lock lm (surfaces_lock);
+		std::lock_guard<std::mutex> lm (surfaces_lock);
 		update_configuration_state ();
 	}
 
@@ -981,7 +981,7 @@ void US2400Protocol::notify_parameter_changed (std::string const & p)
 void
 US2400Protocol::notify_stripable_removed ()
 {
-	Glib::Threads::Mutex::Lock lm (surfaces_lock);
+	std::lock_guard<std::mutex> lm (surfaces_lock);
 	for (Surfaces::iterator s = surfaces.begin(); s != surfaces.end(); ++s) {
 		(*s)->master_monitor_may_have_changed ();
 	}
@@ -998,7 +998,7 @@ void
 US2400Protocol::notify_routes_added (ARDOUR::RouteList & rl)
 {
 	{
-		Glib::Threads::Mutex::Lock lm (surfaces_lock);
+		std::lock_guard<std::mutex> lm (surfaces_lock);
 
 		if (surfaces.empty()) {
 			return;
@@ -1008,7 +1008,7 @@ US2400Protocol::notify_routes_added (ARDOUR::RouteList & rl)
 	/* special case: single route, and it is the monitor or master out */
 
 	if (rl.size() == 1 && (rl.front()->is_monitor() || rl.front()->is_master())) {
-		Glib::Threads::Mutex::Lock lm (surfaces_lock);
+		std::lock_guard<std::mutex> lm (surfaces_lock);
 		for (Surfaces::iterator s = surfaces.begin(); s != surfaces.end(); ++s) {
 			(*s)->master_monitor_may_have_changed ();
 		}
@@ -1028,7 +1028,7 @@ US2400Protocol::notify_solo_active_changed (bool active)
 	std::shared_ptr<Surface> surface;
 
 	{
-		Glib::Threads::Mutex::Lock lm (surfaces_lock);
+		std::lock_guard<std::mutex> lm (surfaces_lock);
 
 		if (surfaces.empty()) {
 			return;
@@ -1059,7 +1059,7 @@ US2400Protocol::notify_presentation_info_changed (PBD::PropertyChange const & wh
 	}
 
 	{
-		Glib::Threads::Mutex::Lock lm (surfaces_lock);
+		std::lock_guard<std::mutex> lm (surfaces_lock);
 
 		if (surfaces.empty()) {
 			return;
@@ -1100,7 +1100,7 @@ US2400Protocol::notify_transport_state_changed()
 void
 US2400Protocol::notify_metering_state_changed()
 {
-	Glib::Threads::Mutex::Lock lm (surfaces_lock);
+	std::lock_guard<std::mutex> lm (surfaces_lock);
 
 	for (Surfaces::iterator s = surfaces.begin(); s != surfaces.end(); ++s) {
 		(*s)->notify_metering_state_changed ();
@@ -1117,7 +1117,7 @@ US2400Protocol::notify_record_state_changed ()
 	std::shared_ptr<Surface> surface;
 
 	{
-		Glib::Threads::Mutex::Lock lm (surfaces_lock);
+		std::lock_guard<std::mutex> lm (surfaces_lock);
 		if (surfaces.empty()) {
 			return;
 		}
@@ -1393,7 +1393,7 @@ US2400Protocol::redisplay_subview_mode ()
 	Surfaces copy; /* can't hold surfaces lock while calling Strip::subview_mode_changed */
 
 	{
-		Glib::Threads::Mutex::Lock lm (surfaces_lock);
+		std::lock_guard<std::mutex> lm (surfaces_lock);
 		copy = surfaces;
 	}
 
@@ -1414,7 +1414,7 @@ US2400Protocol::set_subview_mode (SubViewMode sm, std::shared_ptr<Stripable> r)
 
 		if (r) {
 
-			Glib::Threads::Mutex::Lock lm (surfaces_lock);
+			std::lock_guard<std::mutex> lm (surfaces_lock);
 
 			if (!surfaces.empty()) {
 
@@ -1508,7 +1508,7 @@ US2400Protocol::force_special_stripable_to_strip (std::shared_ptr<Stripable> r, 
 		return;
 	}
 
-	Glib::Threads::Mutex::Lock lm (surfaces_lock);
+	std::lock_guard<std::mutex> lm (surfaces_lock);
 
 	for (Surfaces::iterator s = surfaces.begin(); s != surfaces.end(); ++s) {
 		if ((*s)->number() == surface) {
@@ -1705,7 +1705,7 @@ US2400Protocol::pull_stripable_range (DownButtonList& down, StripableList& selec
 	DEBUG_TRACE (DEBUG::US2400, string_compose ("PRR %5 in list %1.%2 - %3.%4\n", first_surface, first_strip, last_surface, last_strip,
 							   down.size()));
 
-	Glib::Threads::Mutex::Lock lm (surfaces_lock);
+	std::lock_guard<std::mutex> lm (surfaces_lock);
 
 	for (Surfaces::const_iterator s = surfaces.begin(); s != surfaces.end(); ++s) {
 
@@ -1752,7 +1752,7 @@ US2400Protocol::clear_surfaces ()
 	clear_ports ();
 
 	{
-		Glib::Threads::Mutex::Lock lm (surfaces_lock);
+		std::lock_guard<std::mutex> lm (surfaces_lock);
 		_master_surface.reset ();
 		surfaces.clear ();
 	}
@@ -1764,7 +1764,7 @@ US2400Protocol::set_touch_sensitivity (int sensitivity)
 	sensitivity = min (9, sensitivity);
 	sensitivity = max (0, sensitivity);
 
-	Glib::Threads::Mutex::Lock lm (surfaces_lock);
+	std::lock_guard<std::mutex> lm (surfaces_lock);
 
 	for (Surfaces::const_iterator s = surfaces.begin(); s != surfaces.end(); ++s) {
 		(*s)->set_touch_sensitivity (sensitivity);
@@ -1774,7 +1774,7 @@ US2400Protocol::set_touch_sensitivity (int sensitivity)
 void
 US2400Protocol::recalibrate_faders ()
 {
-	Glib::Threads::Mutex::Lock lm (surfaces_lock);
+	std::lock_guard<std::mutex> lm (surfaces_lock);
 
 	for (Surfaces::const_iterator s = surfaces.begin(); s != surfaces.end(); ++s) {
 		(*s)->recalibrate_faders ();
@@ -1784,7 +1784,7 @@ US2400Protocol::recalibrate_faders ()
 void
 US2400Protocol::toggle_backlight ()
 {
-	Glib::Threads::Mutex::Lock lm (surfaces_lock);
+	std::lock_guard<std::mutex> lm (surfaces_lock);
 
 	for (Surfaces::const_iterator s = surfaces.begin(); s != surfaces.end(); ++s) {
 		(*s)->toggle_backlight ();
@@ -1794,7 +1794,7 @@ US2400Protocol::toggle_backlight ()
 std::shared_ptr<Surface>
 US2400Protocol::get_surface_by_raw_pointer (void* ptr) const
 {
-	Glib::Threads::Mutex::Lock lm (surfaces_lock);
+	std::lock_guard<std::mutex> lm (surfaces_lock);
 
 	for (Surfaces::const_iterator s = surfaces.begin(); s != surfaces.end(); ++s) {
 		if ((*s).get() == (Surface*) ptr) {
@@ -1808,7 +1808,7 @@ US2400Protocol::get_surface_by_raw_pointer (void* ptr) const
 std::shared_ptr<Surface>
 US2400Protocol::nth_surface (uint32_t n) const
 {
-	Glib::Threads::Mutex::Lock lm (surfaces_lock);
+	std::lock_guard<std::mutex> lm (surfaces_lock);
 
 	for (Surfaces::const_iterator s = surfaces.begin(); s != surfaces.end(); ++s, --n) {
 		if (n == 0) {
@@ -1824,7 +1824,7 @@ US2400Protocol::connection_handler (std::weak_ptr<ARDOUR::Port> wp1, std::string
 {
 	Surfaces scopy;
 	{
-		Glib::Threads::Mutex::Lock lm (surfaces_lock);
+		std::lock_guard<std::mutex> lm (surfaces_lock);
 		scopy = surfaces;
 	}
 
@@ -1857,7 +1857,7 @@ US2400Protocol::is_midi_track (std::shared_ptr<Stripable> r) const
 bool
 US2400Protocol::is_mapped (std::shared_ptr<Stripable> r) const
 {
-	Glib::Threads::Mutex::Lock lm (surfaces_lock);
+	std::lock_guard<std::mutex> lm (surfaces_lock);
 
 	for (Surfaces::const_iterator s = surfaces.begin(); s != surfaces.end(); ++s) {
 		if ((*s)->stripable_is_mapped (r)) {
@@ -1938,7 +1938,7 @@ US2400Protocol::subview_stripable () const
 uint32_t
 US2400Protocol::global_index (Strip& strip)
 {
-	Glib::Threads::Mutex::Lock lm (surfaces_lock);
+	std::lock_guard<std::mutex> lm (surfaces_lock);
 	return global_index_locked (strip);
 }
 

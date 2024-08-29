@@ -382,7 +382,7 @@ private:
 
 	typedef std::map<PortID, PortMetaData> PortInfo;
 
-	mutable Glib::Threads::Mutex _port_info_mutex;
+	mutable std::mutex _port_info_mutex;
 	PortInfo                     _port_info;
 	bool                         _midi_info_dirty;
 

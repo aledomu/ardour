@@ -24,7 +24,6 @@
 #include <boost/atomic.hpp>
 #include <boost/optional.hpp>
 
-#include <glibmm/threads.h>
 #include <glibmm/timer.h>
 
 #include <ltc.h>
@@ -553,7 +552,7 @@ private:
 	samplepos_t              window_end;
 	samplepos_t              first_mtc_timestamp;
 
-	Glib::Threads::Mutex     reset_lock;
+	std::mutex     reset_lock;
 	uint32_t                 reset_pending;
 	bool                     reset_position;
 	int                      transport_direction;

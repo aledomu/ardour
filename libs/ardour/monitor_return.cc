@@ -17,8 +17,6 @@
  */
 
 #include <algorithm>
-#include <glibmm/threads.h>
-
 #include "ardour/audio_port.h"
 #include "ardour/audioengine.h"
 #include "ardour/monitor_return.h"

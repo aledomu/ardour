@@ -18,8 +18,6 @@
 #ifndef __ardour_luawindow_h__
 #define __ardour_luawindow_h__
 
-#include <glibmm/thread.h>
-
 #include <gtkmm/box.h>
 #include <gtkmm/scrolledwindow.h>
 #include <gtkmm/label.h>

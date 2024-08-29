@@ -105,8 +105,8 @@ BaseUI::main_thread ()
 bool
 BaseUI::signal_running ()
 {
-	Glib::Threads::Mutex::Lock lm (_run_lock);
-	_running.signal ();
+	std::lock_guard<std::mutex> lm (_run_lock);
+	_running.notify_one ();
 
 	return false; // don't call it again
 }
@@ -121,9 +121,9 @@ BaseUI::run ()
 	_main_loop = MainLoop::create (m_context);
 	attach_request_source ();
 
-	Glib::Threads::Mutex::Lock lm (_run_lock);
+	std::unique_lock<std::mutex> lm (_run_lock);
 	_run_loop_thread = PBD::Thread::create (boost::bind (&BaseUI::main_thread, this));
-	_running.wait (_run_lock);
+	_running.wait (lm);
 }
 
 void

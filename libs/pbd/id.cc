@@ -30,14 +30,14 @@
 using namespace std;
 using namespace PBD;
 
-Glib::Threads::Mutex* ID::counter_lock = 0;
+std::mutex* ID::counter_lock = 0;
 uint64_t ID::_counter = 0;
 
 void
 ID::init ()
 {
 	if (!counter_lock) {
-		counter_lock = new Glib::Threads::Mutex;
+		counter_lock = new std::mutex;
 	}
 }
 
@@ -66,7 +66,7 @@ ID::ID (uint64_t n)
 void
 ID::reset ()
 {
-	Glib::Threads::Mutex::Lock lm (*counter_lock);
+	std::lock_guard<std::mutex> lm (*counter_lock);
 	_id = ++_counter;
 }
 

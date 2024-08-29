@@ -20,8 +20,6 @@
 #define __ardour_push2_canvas_h__
 
 #include <cairomm/refptr.h>
-#include <glibmm/threads.h>
-
 #include "canvas/canvas.h"
 
 namespace Cairo {

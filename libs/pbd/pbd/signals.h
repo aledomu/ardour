@@ -32,8 +32,7 @@
 #endif
 
 #include <atomic>
-
-#include <glibmm/threads.h>
+#include <mutex>
 
 #include <boost/noncopyable.hpp>
 #include <boost/bind.hpp>
@@ -74,7 +73,7 @@ public:
 #endif
 
 protected:
-	mutable Glib::Threads::Mutex _mutex;
+	mutable std::mutex _mutex;
 	std::atomic<bool>            _in_dtor;
 #ifdef DEBUG_PBD_SIGNAL_CONNECTIONS
 	bool _debug_connection;
@@ -95,7 +94,7 @@ public:
 
 	void disconnect ()
 	{
-		Glib::Threads::Mutex::Lock lm (_mutex);
+		std::lock_guard<std::mutex> lm (_mutex);
 		SignalBase* signal = _signal.exchange (0, std::memory_order_acq_rel);
 		if (signal) {
 			/* It is safe to assume that signal has not been destructed.
@@ -127,7 +126,7 @@ public:
 			 * be an effective NO-OP since SignalBase::_in_dtor is true,
 			 * then we can proceed.
 			 */
-			Glib::Threads::Mutex::Lock lm (_mutex);
+			std::lock_guard<std::mutex> lm (_mutex);
 		}
 		if (_invalidation_record) {
 			_invalidation_record->unref ();
@@ -135,7 +134,7 @@ public:
 	}
 
 private:
-	Glib::Threads::Mutex     _mutex;
+	std::mutex     _mutex;
 	std::atomic<SignalBase*> _signal;
 	PBD::EventLoop::InvalidationRecord* _invalidation_record;
 };
@@ -217,7 +216,7 @@ class LIBPBD_API ScopedConnectionList  : public boost::noncopyable
 	       one from another.
 	 */
 
-	Glib::Threads::Mutex _scoped_connection_lock;
+	std::mutex _scoped_connection_lock;
 
 	typedef std::list<ScopedConnection*> ConnectionList;
 	ConnectionList _scoped_connection_list;

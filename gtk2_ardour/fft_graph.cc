@@ -74,7 +74,7 @@ void
 FFTGraph::setWindowSize (int windowSize)
 {
 	if (_a_window) {
-		Glib::Threads::Mutex::Lock lm  (_a_window->track_list_lock);
+		std::lock_guard<std::mutex> lm  (_a_window->track_list_lock);
 		setWindowSize_internal (windowSize);
 	} else {
 		setWindowSize_internal (windowSize);
@@ -429,7 +429,7 @@ FFTGraph::redraw ()
 		return;
 	}
 
-	Glib::Threads::Mutex::Lock lm  (_a_window->track_list_lock);
+	std::lock_guard<std::mutex> lm  (_a_window->track_list_lock);
 
 	if (!_a_window->track_list_ready) {
 		cairo_destroy (cr);

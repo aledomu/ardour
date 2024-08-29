@@ -26,8 +26,6 @@
 #include <vector>
 #include <string>
 
-#include <glibmm/threads.h>
-
 #include <boost/function.hpp>
 
 #include "pbd/signals.h"
@@ -92,7 +90,7 @@ private:
 	int load_unused (Session &, const XMLNode&);
 	std::shared_ptr<Playlist> XMLPlaylistFactory (Session &, const XMLNode&);
 
-	mutable Glib::Threads::Mutex lock;
+	mutable std::mutex lock;
 
 	PlaylistSet playlists;
 	PlaylistSet unused_playlists;

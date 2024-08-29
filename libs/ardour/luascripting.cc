@@ -80,7 +80,7 @@ LuaScripting::~LuaScripting ()
 void
 LuaScripting::refresh (bool run_scan)
 {
-	Glib::Threads::Mutex::Lock lm (_lock);
+	std::unique_lock<std::mutex> lm (_lock);
 
 	delete _sl_dsp;
 	delete _sl_session;
@@ -99,7 +99,7 @@ LuaScripting::refresh (bool run_scan)
 	_sl_tracks = 0;
 
 	if (run_scan) {
-		lm.release ();
+		lm.unlock ();
 		scan ();
 	}
 }
@@ -117,7 +117,7 @@ LuaScripting::script_info (const std::string &script) {
 void
 LuaScripting::scan ()
 {
-	Glib::Threads::Mutex::Lock lm (_lock);
+	std::lock_guard<std::mutex> lm (_lock);
 
 #define CLEAR_OR_NEW(LIST) \
 	if (LIST) { LIST->clear (); } else { LIST = new LuaScriptList (); }

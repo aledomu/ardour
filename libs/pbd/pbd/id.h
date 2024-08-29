@@ -22,10 +22,9 @@
 #ifndef __pbd_id_h__
 #define __pbd_id_h__
 
+#include <mutex>
 #include <stdint.h>
 #include <string>
-
-#include <glibmm/threads.h>
 
 #include "pbd/libpbd_visibility.h"
 
@@ -71,7 +70,7 @@ class LIBPBD_API ID {
 	uint64_t _id;
 	bool string_assign (std::string);
 
-	static Glib::Threads::Mutex* counter_lock;
+	static std::mutex* counter_lock;
 	static uint64_t _counter;
 };
 
