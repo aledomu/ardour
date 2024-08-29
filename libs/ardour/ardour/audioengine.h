@@ -266,7 +266,7 @@ class LIBARDOUR_API AudioEngine : public PortManager, public SessionHandlePtr
 
 	std::mutex       _process_lock;
 	std::mutex       _latency_lock;
-	Glib::Threads::RecMutex    _state_lock;
+	std::recursive_mutex       _state_lock;
 	std::condition_variable    session_removed;
 	bool                       session_remove_pending;
 	sampleoffset_t             session_removal_countdown;

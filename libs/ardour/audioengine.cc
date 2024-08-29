@@ -653,7 +653,7 @@ AudioEngine::reset_silence_countdown ()
 void
 AudioEngine::launch_device_control_app()
 {
-	if (_state_lock.trylock () ) {
+	if (_state_lock.try_lock () ) {
 		_backend->launch_control_app ();
 		_state_lock.unlock ();
 	}
@@ -688,7 +688,7 @@ AudioEngine::do_reset_backend()
 
 			rrlm.unlock();
 
-			Glib::Threads::RecMutex::Lock pl (_state_lock);
+			std::lock_guard<std::recursive_mutex> pl (_state_lock);
 			PBD::atomic_dec_and_test (_hw_reset_request_count);
 
 			std::cout << "AudioEngine::RESET::Reset request processing. Requests left: " << _hw_reset_request_count << std::endl;
@@ -749,7 +749,7 @@ AudioEngine::do_devicelist_update()
 
 			dlulm.unlock();
 
-			Glib::Threads::RecMutex::Lock pl (_state_lock);
+			std::lock_guard<std::recursive_mutex> pl (_state_lock);
 
 			PBD::atomic_dec_and_test (_hw_devicelist_update_count);
 			DeviceListChanged (); /* EMIT SIGNAL */
