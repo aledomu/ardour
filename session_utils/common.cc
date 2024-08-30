@@ -18,6 +18,8 @@
 
 #include <iostream>
 #include <cstdlib>
+#include <thread>
+
 #include <glibmm.h>
 
 
@@ -92,12 +94,14 @@ void vstfx_destroy_editor (VSTState*) {}
 class MyEventLoop : public sigc::trackable, public EventLoop
 {
 	public:
-		MyEventLoop (std::string const& name) : EventLoop (name) {
-			run_loop_thread = Glib::Threads::Thread::self();
+		MyEventLoop (std::string const& name)
+			: EventLoop (name)
+			, run_loop_thread (std::this_thread::get_id())
+		{
 		}
 
 		bool call_slot (InvalidationRecord*, const boost::function<void()>& f) {
-			if (Glib::Threads::Thread::self() == run_loop_thread) {
+			if (std::this_thread::get_id() == run_loop_thread) {
 				f ();
 			}
 			return true;
@@ -106,8 +110,8 @@ class MyEventLoop : public sigc::trackable, public EventLoop
 		Glib::Threads::RWLock& slot_invalidation_rwlock() { return request_buffer_map_lock; }
 
 	private:
-		Glib::Threads::Thread* run_loop_thread;
-		Glib::Threads::RWLock   request_buffer_map_lock;
+		std::thread::id       run_loop_thread;
+		Glib::Threads::RWLock request_buffer_map_lock;
 };
 
 static MyEventLoop *event_loop;

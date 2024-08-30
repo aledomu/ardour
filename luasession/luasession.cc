@@ -6,6 +6,7 @@
 #include <iostream>
 #include <list>
 #include <string>
+#include <thread>
 #include <vector>
 
 #ifdef PLATFORM_WINDOWS
@@ -105,13 +106,13 @@ class MyEventLoop : public sigc::trackable, public EventLoop
 public:
 	MyEventLoop (std::string const& name)
 	    : EventLoop (name)
+		, run_loop_thread (std::this_thread::get_id ())
 	{
-		run_loop_thread = Glib::Threads::Thread::self ();
 	}
 
 	bool call_slot (InvalidationRecord* ir, const boost::function<void ()>& f)
 	{
-		if (Glib::Threads::Thread::self () == run_loop_thread) {
+		if (std::this_thread::get_id () == run_loop_thread) {
 			cout << string_compose ("%1/%2 direct dispatch of call slot via functor @ %3, invalidation %4\n", event_loop_name (), pthread_name (), &f, ir);
 			f ();
 		} else {
@@ -133,7 +134,7 @@ public:
 	}
 
 private:
-	Glib::Threads::Thread* run_loop_thread;
+	std::thread::id run_loop_thread;
 	Glib::Threads::RWLock  request_buffer_map_lock;
 };
 

@@ -43,12 +43,12 @@ public:
 	MyEventLoop (std::string const& name)
 	: EventLoop (name)
 	{
-		run_loop_thread = Glib::Threads::Thread::self ();
+		run_loop_thread = std::this_thread::get_id ();
 	}
 
 	void call_slot (InvalidationRecord* ir, const boost::function<void ()>& f)
 	{
-		if (Glib::Threads::Thread::self () == run_loop_thread) {
+		if (std::this_thread::get_id () == run_loop_thread) {
 			f ();
 		} else {
 			assert (!ir);
@@ -68,8 +68,8 @@ public:
 	}
 
 private:
-	Glib::Threads::Thread* run_loop_thread;
-	Glib::Threads::RWLock  request_buffer_map_lock;
+	std::thread::id       run_loop_thread;
+	Glib::Threads::RWLock request_buffer_map_lock;
 };
 
 struct MyInvalidationRecord : public PBD::EventLoop::InvalidationRecord {

@@ -2,6 +2,7 @@
 
 #ifndef _WIN32
 #  define HAVE_MMAP
+#include <thread>
 #endif
 
 #include <stdlib.h>
@@ -34,7 +35,7 @@ std::condition_variable pool_run;
 std::condition_variable pool_done;
 std::mutex pool_lock;
 std::list<int> pool_work;
-std::vector<Glib::Threads::Thread*> thread_pool;
+std::vector<std::thread*> thread_pool;
 int pool_errors = 0;
 bool thread_pool_lives = true;
 
@@ -125,7 +126,7 @@ build_thread_pool (int nthreads, size_t block_size)
 		td->block_size = block_size;
 		td->id = n;
 
-		thread_pool.push_back (Glib::Threads::Thread::create (sigc::bind (sigc::ptr_fun (thread_pool_work), td)));
+		thread_pool.push_back (new std::thread (sigc::bind (sigc::ptr_fun (thread_pool_work), td)));
 	}
 }
 
