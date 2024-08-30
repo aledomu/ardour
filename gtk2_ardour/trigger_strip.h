@@ -63,7 +63,7 @@ public:
 
 	void fast_update ();
 
-	static PBD::Signal1<void, TriggerStrip*> CatchDeletion;
+	static PBD::Signal<void(TriggerStrip*)> CatchDeletion;
 
 protected:
 	void self_delete ();

@@ -13,7 +13,7 @@
 class Tx
 {
 public:
-	PBD::Signal1<void, int> sig1;
+	PBD::Signal<void(int)> sig1;
 };
 
 /* ****************************************************************************/

@@ -100,7 +100,7 @@ public:
 	void set_step_editing (bool yn);
 	MidiRingBuffer<samplepos_t>& step_edit_ring_buffer() { return _step_edit_ring_buffer; }
 
-	PBD::Signal1<void,bool> StepEditStatusChange;
+	PBD::Signal<void(bool)> StepEditStatusChange;
 
 	std::shared_ptr<SMFSource> write_source (uint32_t n = 0);
 
@@ -122,7 +122,7 @@ public:
 
 	std::shared_ptr<MidiPlaylist> midi_playlist ();
 
-	PBD::Signal1<void, std::weak_ptr<MidiSource> > DataRecorded;
+	PBD::Signal<void(std::weak_ptr<MidiSource>)> DataRecorded;
 	std::shared_ptr<MidiBuffer> get_gui_feed_buffer () const;
 
 	MonitorState monitoring_state () const;
@@ -135,7 +135,7 @@ public:
 
 	void set_input_active (bool);
 	bool input_active () const;
-	PBD::Signal0<void> InputActiveChanged;
+	PBD::Signal<void()> InputActiveChanged;
 
 	void set_restore_pgm_on_load (bool yn);
 	bool restore_pgm_on_load () const;

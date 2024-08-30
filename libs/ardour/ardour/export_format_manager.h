@@ -85,8 +85,8 @@ class LIBARDOUR_API ExportFormatManager : public PBD::ScopedConnectionList
 
 	/* Signals */
 
-	PBD::Signal1<void,bool> CompleteChanged;
-	PBD::Signal0<void> DescriptionChanged;
+	PBD::Signal<void(bool)> CompleteChanged;
+	PBD::Signal<void()> DescriptionChanged;
 
 	/* Access to lists */
 

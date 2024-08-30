@@ -608,8 +608,8 @@ public:
 	friend bool ARDOUR_UI_UTILS::relay_key_press (GdkEventKey*, Gtk::Window*);
 	friend bool ARDOUR_UI_UTILS::forward_key_press (GdkEventKey*);
 
-	PBD::Signal0<void> SnapChanged;
-	PBD::Signal0<void> MouseModeChanged;
+	PBD::Signal<void()> SnapChanged;
+	PBD::Signal<void()> MouseModeChanged;
 
 	Gtkmm2ext::Bindings* bindings;
 

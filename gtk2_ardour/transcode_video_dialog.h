@@ -96,7 +96,7 @@ private:
 	std::string infn;
 	double      m_aspect;
 
-	PBD::Signal0<void> StartNextStage;
+	PBD::Signal<void()> StartNextStage;
 
 	TranscodeFfmpeg* transcoder;
 

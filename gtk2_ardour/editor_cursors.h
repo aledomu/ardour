@@ -54,7 +54,7 @@ public:
 		return *_track_canvas_item;
 	}
 
-	PBD::Signal1<void, samplepos_t> PositionChanged;
+	PBD::Signal<void(samplepos_t)> PositionChanged;
 
 private:
 	Editor&               _editor;

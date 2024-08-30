@@ -415,7 +415,7 @@ class LIBARDOUR_API Trigger : public PBD::Stateful {
 	void get_ui_state (UIState &state) const;
 	void set_ui_state (UIState &state);
 
-	static PBD::Signal2<void,PBD::PropertyChange,Trigger*> TriggerPropertyChange;
+	static PBD::Signal<void(PBD::PropertyChange,Trigger*)> TriggerPropertyChange;
 
   protected:
 	struct UIRequests {
@@ -729,7 +729,7 @@ class LIBARDOUR_API TriggerBox : public Processor
 	static CueRecords cue_records;
 	static bool cue_recording () { return _cue_recording; }
 	static void set_cue_recording (bool yn);
-	static PBD::Signal0<void> CueRecordingChanged;
+	static PBD::Signal<void()> CueRecordingChanged;
 
 	void run (BufferSet& bufs, samplepos_t start_sample, samplepos_t end_sample, double speed, pframes_t nframes, bool result_required);
 	void run_cycle (BufferSet& bufs, samplepos_t start_sample, samplepos_t end_sample, double speed, pframes_t nframes);
@@ -737,7 +737,7 @@ class LIBARDOUR_API TriggerBox : public Processor
 	bool configure_io (ChanCount in, ChanCount out);
 
 	bool empty() const { return _active_slots == 0; }
-	PBD::Signal0<void> EmptyStatusChanged;
+	PBD::Signal<void()> EmptyStatusChanged;
 
 	int32_t order() const { return _order; }
 	void set_order(int32_t n);
@@ -805,7 +805,7 @@ class LIBARDOUR_API TriggerBox : public Processor
 	/* valid only within the ::run() call tree */
 	int32_t active_scene() const { return _active_scene; }
 
-	PBD::Signal1<void,uint32_t> TriggerSwapped;
+	PBD::Signal<void(uint32_t)> TriggerSwapped;
 
 	enum TriggerMidiMapMode {
 		AbletonPush,
@@ -849,7 +849,7 @@ class LIBARDOUR_API TriggerBox : public Processor
 	static PBD::PropertyChange all_trigger_props();
 
 	void send_property_change (PBD::PropertyChange pc);
-	static PBD::Signal2<void,PBD::PropertyChange,int> TriggerBoxPropertyChange;
+	static PBD::Signal<void(PBD::PropertyChange,int)> TriggerBoxPropertyChange;
 
 	void dump (std::ostream &) const;
 
@@ -949,7 +949,7 @@ class LIBARDOUR_API TriggerBox : public Processor
 
 	static bool _learning;
 	static std::pair<int,int> learning_for;
-	static PBD::Signal0<void> TriggerMIDILearned;
+	static PBD::Signal<void()> TriggerMIDILearned;
 
 	static void init_pool();
 

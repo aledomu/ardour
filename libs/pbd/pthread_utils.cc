@@ -54,7 +54,7 @@ static Glib::Threads::Private<char> thread_name (free);
 
 namespace PBD
 {
-	PBD::Signal3<void, pthread_t, std::string, uint32_t> ThreadCreatedWithRequestSize;
+	PBD::Signal<void(pthread_t, std::string, uint32_t)> ThreadCreatedWithRequestSize;
 }
 
 using namespace PBD;

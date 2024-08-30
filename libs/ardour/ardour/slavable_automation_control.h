@@ -71,7 +71,7 @@ public:
 	*/
 	int32_t   get_boolean_masters () const;
 
-	PBD::Signal0<void> MasterStatusChange;
+	PBD::Signal<void()> MasterStatusChange;
 
 	void use_saved_master_ratios ();
 
