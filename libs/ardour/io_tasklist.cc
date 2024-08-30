@@ -101,7 +101,7 @@ IOTaskList::push_back (boost::function<void ()> fn)
 void
 IOTaskList::process ()
 {
-	assert (strcmp (pthread_name (), "butler") == 0);
+	assert (pthread_name () == "butler");
 	if (_n_threads > 1 && _tasks.size () > 2) {
 		uint32_t wakeup = std::min<uint32_t> (_n_threads, _tasks.size ());
 		DEBUG_TRACE (PBD::DEBUG::IOTaskList, string_compose ("IOTaskList process wakeup %1 thread for %2 tasks.\n", wakeup, _tasks.size ()))

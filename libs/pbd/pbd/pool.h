@@ -149,22 +149,18 @@ class LIBPBD_API PerThreadPool
 public:
 	PerThreadPool ();
 
-	const Glib::Threads::Private<CrossThreadPool>& key () const
-	{
-		return _key;
-	}
+	static const std::shared_ptr<CrossThreadPool>& key ();
 
 	void create_per_thread_pool (std::string name, unsigned long item_size, unsigned long nitems, PoolDumpCallback cb = NULL);
 
-	CrossThreadPool* per_thread_pool (bool must_exist = true);
+	std::shared_ptr<CrossThreadPool> per_thread_pool (bool must_exist = true);
 
 	bool has_per_thread_pool ();
 	void set_trash (PBD::RingBuffer<CrossThreadPool*>* t);
 	void add_to_trash (CrossThreadPool*);
 
 private:
-	Glib::Threads::Private<CrossThreadPool> _key;
-	std::string                             _name;
+	std::string                          _name;
 
 	/** mutex to protect either changes to the _trash variable, or writes to the RingBuffer */
 	std::mutex               _trash_mutex;

@@ -50,7 +50,7 @@ using namespace std;
 typedef std::list<pthread_t>        ThreadMap;
 static ThreadMap                    all_threads;
 static pthread_mutex_t              thread_map_lock = PTHREAD_MUTEX_INITIALIZER;
-static Glib::Threads::Private<char> thread_name (free);
+thread_local std::string thread_name;
 
 namespace PBD
 {
@@ -144,8 +144,7 @@ pthread_create_and_store (string name, pthread_t* thread, void* (*start_routine)
 void
 pthread_set_name (const char* str)
 {
-	/* copy string and delete it when exiting */
-	thread_name.set (strdup (str)); // leaks
+	thread_name = std::string (str);
 
 #if !defined PTW32_VERSION && defined _GNU_SOURCE
 	/* set public thread name, up to 16 chars */
@@ -156,15 +155,10 @@ pthread_set_name (const char* str)
 #endif
 }
 
-const char*
+const std::string&
 pthread_name ()
 {
-	const char* str = thread_name.get ();
-
-	if (str) {
-		return str;
-	}
-	return "unknown";
+	return !thread_name.empty() ? thread_name : static_cast<const std::string&>("unknown");
 }
 
 void

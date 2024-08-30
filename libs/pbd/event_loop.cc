@@ -33,10 +33,6 @@
 using namespace PBD;
 using namespace std;
 
-static void do_not_delete_the_loop_pointer (void*) { }
-
-Glib::Threads::Private<EventLoop> EventLoop::thread_event_loop (do_not_delete_the_loop_pointer);
-
 std::mutex EventLoop::thread_buffer_requests_lock;
 EventLoop::ThreadRequestBufferList EventLoop::thread_buffer_requests;
 EventLoop::RequestBufferSuppliers EventLoop::request_buffer_suppliers;
@@ -58,6 +54,8 @@ EventLoop::~EventLoop ()
 	trash.clear ();
 }
 
+thread_local std::shared_ptr<EventLoop> thread_event_loop;
+
 EventLoop*
 EventLoop::get_event_loop_for_thread()
 {
@@ -67,7 +65,7 @@ EventLoop::get_event_loop_for_thread()
 void
 EventLoop::set_event_loop_for_thread (EventLoop* loop)
 {
-	thread_event_loop.set (loop);
+	thread_event_loop.reset (loop, [](EventLoop*) { } );
 }
 
 void*

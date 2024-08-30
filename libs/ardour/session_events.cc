@@ -93,7 +93,7 @@ SessionEvent::SessionEvent (Type t, Action a, samplepos_t when, samplepos_t wher
 void *
 SessionEvent::operator new (size_t)
 {
-	CrossThreadPool* p = pool->per_thread_pool ();
+	CrossThreadPool* p = pool->per_thread_pool ().get ();
 	SessionEvent* ev = static_cast<SessionEvent*> (p->alloc ());
 	DEBUG_TRACE (DEBUG::SessionEvents, string_compose ("%1 Allocating SessionEvent from %2 ev @ %3 pool size %4 free %5 used %6\n", pthread_name(), p->name(), ev,
 	                                                   p->total(), p->available(), p->used()));
@@ -105,7 +105,7 @@ SessionEvent::operator new (size_t)
 void
 SessionEvent::operator delete (void *ptr, size_t /*size*/)
 {
-	Pool* p = pool->per_thread_pool (false);
+	Pool* p = pool->per_thread_pool (false).get ();
 	SessionEvent* ev = static_cast<SessionEvent*> (ptr);
 
 	DEBUG_TRACE (DEBUG::SessionEvents, string_compose (

@@ -62,7 +62,7 @@ LIBPBD_API int  pthread_create_and_store (std::string name, pthread_t  *thread, 
 LIBPBD_API void pthread_cancel_one (pthread_t thread);
 LIBPBD_API void pthread_cancel_all ();
 LIBPBD_API void pthread_kill_all (int signum);
-LIBPBD_API const char* pthread_name ();
+LIBPBD_API const std::string& pthread_name ();
 LIBPBD_API void pthread_set_name (const char* name);
 
 enum PBDThreadClass {

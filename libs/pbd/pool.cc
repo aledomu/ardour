@@ -23,6 +23,7 @@
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>
+#include <memory>
 #include <vector>
 
 #include "pbd/compose.h"
@@ -157,14 +158,25 @@ SingleAllocMultiReleasePool::release (void* ptr)
 
 /*-------------------------------------------------------*/
 
-static void
-free_per_thread_pool (void* ptr)
+PerThreadPool::PerThreadPool ()
+	: _trash (0)
+{
+}
+
+thread_local std::shared_ptr<CrossThreadPool> _key;
+
+const std::shared_ptr<CrossThreadPool>& PerThreadPool::key ()
+{
+	return _key;
+}
+
+void
+free_per_thread_pool (CrossThreadPool* cp)
 {
 	/* Rather than deleting the CrossThreadPool now, we add it to our trash buffer.
 	 * This prevents problems if other threads still require access to this CrossThreadPool.
 	 * We assume that some other agent will clean out the trash buffer as required.
 	 */
-	CrossThreadPool* cp = static_cast<CrossThreadPool*> (ptr);
 	assert (cp);
 
 	if (cp->empty ()) {
@@ -181,12 +193,6 @@ free_per_thread_pool (void* ptr)
 	}
 }
 
-PerThreadPool::PerThreadPool ()
-	: _key (free_per_thread_pool)
-	, _trash (0)
-{
-}
-
 /** Create a new CrossThreadPool and set the current thread's private _key to point to it.
  *  @param n Name.
  *  @param isize Size of each item in the pool.
@@ -195,7 +201,7 @@ PerThreadPool::PerThreadPool ()
 void
 PerThreadPool::create_per_thread_pool (string n, unsigned long isize, unsigned long nitems, PoolDumpCallback cb)
 {
-	_key.set (new CrossThreadPool (n, isize, nitems, this, cb));
+	_key.reset (new CrossThreadPool (n, isize, nitems, this, cb), free_per_thread_pool);
 }
 
 /** @return True if CrossThreadPool for the current thread exists,
@@ -204,25 +210,20 @@ PerThreadPool::create_per_thread_pool (string n, unsigned long isize, unsigned l
 bool
 PerThreadPool::has_per_thread_pool ()
 {
-	CrossThreadPool* p = _key.get ();
-	if (p) {
-		return true;
-	}
-	return false;
+	return _key ? true : false;
 }
 
 /** @return CrossThreadPool for the current thread, which must previously have been created by
  *  calling create_per_thread_pool in the current thread.
  */
-CrossThreadPool*
+std::shared_ptr<CrossThreadPool>
 PerThreadPool::per_thread_pool (bool must_exist)
 {
-	CrossThreadPool* p = _key.get ();
-	if (!p && must_exist) {
+	if (!_key && must_exist) {
 		fatal << "programming error: no per-thread pool \"" << _name << "\" for thread " << pthread_name () << endmsg;
 		abort (); /*NOTREACHED*/
 	}
-	return p;
+	return _key;
 }
 
 void

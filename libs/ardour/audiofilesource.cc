@@ -89,7 +89,7 @@ struct SizedSampleBuffer {
 	}
 };
 
-Glib::Threads::Private<SizedSampleBuffer> thread_interleave_buffer;
+thread_local SizedSampleBuffer* thread_interleave_buffer;
 
 /** Constructor used for existing external-to-session files. */
 AudioFileSource::AudioFileSource (Session& s, const string& path, Source::Flag flags)
@@ -374,14 +374,14 @@ AudioFileSource::get_interleave_buffer (samplecnt_t size)
 {
 	SizedSampleBuffer* ssb;
 
-	if ((ssb = thread_interleave_buffer.get()) == 0) {
+	if ((ssb = thread_interleave_buffer) == nullptr) {
 		ssb = new SizedSampleBuffer (size);
-		thread_interleave_buffer.set (ssb);
+		thread_interleave_buffer = ssb;
 	}
 
 	if (ssb->size < size) {
 		ssb = new SizedSampleBuffer (size);
-		thread_interleave_buffer.set (ssb);
+		thread_interleave_buffer = ssb;
 	}
 
 	return ssb->buf;

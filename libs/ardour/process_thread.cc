@@ -31,13 +31,7 @@ using namespace ARDOUR;
 using namespace Glib;
 using namespace std;
 
-static void
-release_thread_buffer (void* arg)
-{
-	BufferManager::put_thread_buffers ((ThreadBuffers*) arg);
-}
-
-Glib::Threads::Private<ThreadBuffers> ProcessThread::_private_thread_buffers (release_thread_buffer);
+thread_local std::shared_ptr<ThreadBuffers> ProcessThread::_private_thread_buffers;
 
 void
 ProcessThread::init ()
@@ -61,7 +55,7 @@ ProcessThread::get_buffers ()
 	ThreadBuffers* tb = BufferManager::get_thread_buffers ();
 
 	assert (tb);
-	_private_thread_buffers.set (tb);
+	_private_thread_buffers.reset(tb, BufferManager::put_thread_buffers);
 }
 
 void
@@ -70,7 +64,7 @@ ProcessThread::drop_buffers ()
 	ThreadBuffers* tb = _private_thread_buffers.get();
 	assert (tb);
 	BufferManager::put_thread_buffers (tb);
-	_private_thread_buffers.set (0);
+	_private_thread_buffers.reset();
 }
 
 BufferSet&

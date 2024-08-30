@@ -42,7 +42,7 @@ namespace PBD {
 int Stateful::current_state_version = 0;
 int Stateful::loading_state_version = 0;
 
-Glib::Threads::Private<bool> Stateful::_regenerate_xml_or_string_ids;
+thread_local bool* Stateful::_regenerate_xml_or_string_ids;
 
 Stateful::Stateful ()
 	: _extra_xml (nullptr)
@@ -384,7 +384,7 @@ Stateful::clear_owned_changes ()
 bool
 Stateful::set_id (const XMLNode& node)
 {
-	bool* regen = _regenerate_xml_or_string_ids.get();
+	bool* regen = _regenerate_xml_or_string_ids;
 
 	if (regen && *regen) {
 		reset_id ();
@@ -407,7 +407,7 @@ Stateful::reset_id ()
 void
 Stateful::set_id (const string& str)
 {
-	bool* regen = _regenerate_xml_or_string_ids.get();
+	bool* regen = _regenerate_xml_or_string_ids;
 
 	if (regen && *regen) {
 		reset_id ();
@@ -419,7 +419,7 @@ Stateful::set_id (const string& str)
 bool
 Stateful::regenerate_xml_or_string_ids () const
 {
-	bool* regen = _regenerate_xml_or_string_ids.get();
+	bool* regen = _regenerate_xml_or_string_ids;
 	if (regen && *regen) {
 		return true;
 	} else {
@@ -430,8 +430,7 @@ Stateful::regenerate_xml_or_string_ids () const
 void
 Stateful::set_regenerate_xml_and_string_ids_in_this_thread (bool yn)
 {
-	bool* val = new bool (yn);
-	_regenerate_xml_or_string_ids.set (val);
+	_regenerate_xml_or_string_ids = new bool (yn);
 }
 
 } // namespace PBD

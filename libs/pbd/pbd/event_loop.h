@@ -113,7 +113,6 @@ public:
 	static InvalidationRecord* __invalidator (sigc::trackable& trackable, const char*, int);
 
 private:
-	static Glib::Threads::Private<EventLoop> thread_event_loop;
 	std::string _name;
 
 	typedef std::vector<ThreadBufferMapping> ThreadRequestBufferList;
