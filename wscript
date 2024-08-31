@@ -566,9 +566,9 @@ int main() { return 0; }''',
         cxx_flags.append('--stdlib=libc++')
         linker_flags.append('--stdlib=libc++')
 
-    if conf.options.cxx11 or conf.env['build_host'] in [ 'mavericks', 'yosemite', 'el_capitan', 'sierra', 'high_sierra', 'mojave', 'catalina' , 'bigsur', 'monterey', 'ventura', 'sonoma' ]:
-        conf.check_cxx(cxxflags=["-std=c++11"])
-        cxx_flags.append('-std=c++11')
+    if conf.options.cxx14 or conf.env['build_host'] in [ 'mavericks', 'yosemite', 'el_capitan', 'sierra', 'high_sierra', 'mojave', 'catalina' , 'bigsur', 'monterey', 'ventura', 'sonoma' ]:
+        conf.check_cxx(cxxflags=["-std=c++14"])
+        cxx_flags.append('-std=c++14')
         if platform == "darwin":
             # Mavericks and later changed the syntax to be used when including Carbon headers,
             # from requiring a full path to requiring just the header name.
@@ -958,8 +958,8 @@ def options(opt):
                     help='Additional include directory where shared libraries can be found (split multiples with commas)')
     opt.add_option('--noconfirm', action='store_true', default=False, dest='noconfirm',
                     help='Do not ask questions that require confirmation during the build')
-    opt.add_option('--cxx11', action='store_true', default=False, dest='cxx11',
-                    help='Turn on c++11 compiler flags (-std=c++11)')
+    opt.add_option('--cxx14', action='store_true', default=False, dest='cxx14',
+                    help='Turn on c++14 compiler flags (-std=c++14)')
     opt.add_option('--use-libc++', action='store_true', default=False, dest='use_libcpp',
                     help='Use libc++ instead of default or auto-detected stdlib')
     opt.add_option('--address-sanitizer', action='store_true', default=False, dest='asan',
@@ -1267,7 +1267,7 @@ int main () { int x = SFC_RF64_AUTO_DOWNGRADE; return 0; }
         conf.env.append_value('CFLAGS', '-DCOMPILER_MINGW')
         conf.env.append_value('CXXFLAGS', '-DPLATFORM_WINDOWS')
         conf.env.append_value('CXXFLAGS', '-DCOMPILER_MINGW')
-        if conf.options.cxx11:
+        if conf.options.cxx14:
             conf.env.append_value('CFLAGS', '-D_USE_MATH_DEFINES')
             conf.env.append_value('CXXFLAGS', '-D_USE_MATH_DEFINES')
             conf.env.append_value('CFLAGS', '-DWIN32')
