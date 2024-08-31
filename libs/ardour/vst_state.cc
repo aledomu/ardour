@@ -22,11 +22,13 @@
 void
 vststate_init (VSTState* state) {
 	memset (state, 0, sizeof (VSTState));
-	pthread_mutex_init (&state->lock, 0);
-	pthread_mutex_init (&state->state_lock, 0);
-	pthread_cond_init (&state->window_status_change, 0);
-	pthread_cond_init (&state->plugin_dispatcher_called, 0);
-	pthread_cond_init (&state->window_created, 0);
+	std::mutex inner_lock;
+	state->lock = std::unique_lock(inner_lock);
+	std::mutex inner_state_lock;
+	state->state_lock = std::unique_lock(inner_state_lock);
+	state->window_status_change = new std::condition_variable();
+	state->plugin_dispatcher_called = new std::condition_variable();
+	state->window_created = new std::condition_variable();
 	state->want_program = -1;
 }
 
@@ -54,9 +56,9 @@ vststate_maybe_set_program (VSTState* state)
 	}
 
 	if (state->want_chunk == 1) {
-		pthread_mutex_lock (&state->state_lock);
+		state->state_lock.lock();
 		state->plugin->dispatcher (state->plugin, 24 /* effSetChunk */, 1, state->wanted_chunk_size, state->wanted_chunk, 0);
 		state->want_chunk = 0;
-		pthread_mutex_unlock (&state->state_lock);
+		state->state_lock.unlock();
 	}
 }

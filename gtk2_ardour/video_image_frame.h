@@ -23,7 +23,6 @@
 #include <glib.h>
 
 #include <sigc++/signal.h>
-#include <pthread.h>
 
 #include "ardour/ardour.h"
 #include "pbd/signals.h"
@@ -96,8 +95,8 @@ class VideoImageFrame : public sigc::trackable
 	samplepos_t want_video_frame_number;
 	bool        queued_request;
 
-	pthread_mutex_t request_lock;
-	pthread_mutex_t queue_lock;
+	std::mutex request_lock;
+	std::mutex queue_lock;
 
 	pthread_t      thread_id_tt;
 	bool           thread_active;

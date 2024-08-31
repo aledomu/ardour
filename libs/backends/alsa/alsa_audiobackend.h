@@ -329,7 +329,7 @@ class AlsaAudioBackend : public AudioBackend, public PortEngineSharedImpl
 		pthread_t _midi_device_thread_id;
 		bool _midi_device_thread_active;
 
-		pthread_mutex_t _device_port_mutex;
+		std::mutex _device_port_mutex;
 
 		/* processing */
 		float  _dsp_load;

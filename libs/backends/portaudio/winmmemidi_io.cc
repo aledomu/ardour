@@ -41,15 +41,13 @@ WinMMEMidiIO::WinMMEMidiIO()
 	, m_changed_callback (0)
 	, m_changed_arg (0)
 {
-	pthread_mutex_init (&m_device_lock, 0);
 }
 
 WinMMEMidiIO::~WinMMEMidiIO()
 {
-	pthread_mutex_lock (&m_device_lock);
+	m_device_lock.lock();
 	cleanup();
-	pthread_mutex_unlock (&m_device_lock);
-	pthread_mutex_destroy (&m_device_lock);
+	m_device_lock.unlock();
 }
 
 void
@@ -151,9 +149,9 @@ WinMMEMidiIO::stop ()
 	DEBUG_MIDI ("Stopping MIDI driver\n");
 	m_run = false;
 	stop_devices ();
-	pthread_mutex_lock (&m_device_lock);
+	m_device_lock.lock();
 	cleanup ();
-	pthread_mutex_unlock (&m_device_lock);
+	m_device_lock.unlock();
 }
 
 void
@@ -400,7 +398,7 @@ WinMMEMidiIO::discover()
 		return;
 	}
 
-	if (pthread_mutex_trylock (&m_device_lock)) {
+	if (!m_device_lock.try_lock()) {
 		return;
 	}
 
@@ -411,7 +409,7 @@ WinMMEMidiIO::discover()
 
 	if (!(m_inputs.size () || m_outputs.size ())) {
 		DEBUG_MIDI ("No midi inputs or outputs\n");
-		pthread_mutex_unlock (&m_device_lock);
+		m_device_lock.unlock();
 		return;
 	}
 
@@ -424,5 +422,5 @@ WinMMEMidiIO::discover()
 	}
 
 	m_active = true;
-	pthread_mutex_unlock (&m_device_lock);
+	m_device_lock.unlock();
 }

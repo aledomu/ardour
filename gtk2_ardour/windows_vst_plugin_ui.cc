@@ -123,7 +123,7 @@ WindowsVSTPluginUI::forward_key_event (GdkEventKey* ev)
 	}
 
 	VSTState* fst = _vst->state ();
-	pthread_mutex_lock (&fst->lock);
+	fst->lock.lock();
 
 	if (fst->n_pending_keys == (sizeof (fst->pending_keys) * sizeof (VSTKey))) {
 		/* buffer full */
@@ -159,7 +159,7 @@ WindowsVSTPluginUI::forward_key_event (GdkEventKey* ev)
 	fst->pending_keys[fst->n_pending_keys].character = character_windows_key;
 	fst->n_pending_keys++;
 
-	pthread_mutex_unlock (&fst->lock);
+	fst->lock.unlock();
 #endif
 }
 

@@ -21,7 +21,6 @@
 #include "ardour/tempo.h"
 
 #include <gtkmm2ext/utils.h>
-#include <pthread.h>
 
 #include "canvas/container.h"
 
@@ -51,8 +50,6 @@ VideoImageFrame::VideoImageFrame (PublicEditor& ed, ArdourCanvas::Container& par
 	, video_server_url(vsurl)
 	, video_filename(vfn)
 {
-	pthread_mutex_init(&request_lock, NULL);
-	pthread_mutex_init(&queue_lock, NULL);
 	queued_request=false;
 	video_frame_number = -1;
 	rightend = -1;
@@ -75,8 +72,6 @@ VideoImageFrame::~VideoImageFrame ()
 {
 	if (thread_active) pthread_join(thread_id_tt, NULL);
 	delete image;
-	pthread_mutex_destroy(&request_lock);
-	pthread_mutex_destroy(&queue_lock);
 }
 
 void
@@ -256,24 +251,24 @@ VideoImageFrame::http_download_done (char *data){
 	if (queued_request) {
 		http_get_again(want_video_frame_number);
 	}
-	pthread_mutex_unlock(&request_lock);
+	request_lock.unlock();
 }
 
 
 void
 VideoImageFrame::http_get (samplepos_t fn) {
-	if (pthread_mutex_trylock(&request_lock)) {
-		pthread_mutex_lock(&queue_lock);
+	if (!request_lock.try_lock()) {
+		queue_lock.lock();
 		queued_request=true;
 		want_video_frame_number=fn;
-		pthread_mutex_unlock(&queue_lock);
+		queue_lock.unlock();
 		return;
 	}
 	if (thread_active) pthread_join(thread_id_tt, NULL);
-	pthread_mutex_lock(&queue_lock);
+	queue_lock.lock();
 	queued_request=false;
 	req_video_frame_number=fn;
-	pthread_mutex_unlock(&queue_lock);
+	queue_lock.unlock();
 	int rv = pthread_create(&thread_id_tt, NULL, http_get_thread, this);
 	thread_active=true;
 	if (rv) {
@@ -285,10 +280,10 @@ VideoImageFrame::http_get (samplepos_t fn) {
 
 void
 VideoImageFrame::http_get_again(samplepos_t /*fn*/) {
-	pthread_mutex_lock(&queue_lock);
+	queue_lock.lock();
 	queued_request=false;
 	req_video_frame_number=want_video_frame_number;
-	pthread_mutex_unlock(&queue_lock);
+	queue_lock.unlock();
 
 	http_get_thread(this);
 }

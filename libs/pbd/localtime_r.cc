@@ -36,24 +36,17 @@
 struct tm *
 localtime_r(const time_t *const timep, struct tm *p_tm)
 {
-	static pthread_mutex_t time_mutex;
-	static int time_mutex_inited = 0;
+	static std::mutex time_mutex;
 	struct tm *tmp;
 
-	if (!time_mutex_inited)
-	{
-		time_mutex_inited = 1;
-		pthread_mutex_init(&time_mutex, NULL);
-	}
-
-	pthread_mutex_lock(&time_mutex);
+	time_mutex.lock();
 	tmp = localtime(timep);
 	if (tmp)
 	{
 		memcpy(p_tm, tmp, sizeof(struct tm));
 		tmp = p_tm;
 	}
-	pthread_mutex_unlock(&time_mutex);
+	time_mutex.unlock();
 
 	return tmp;
 }

@@ -159,7 +159,7 @@ LXVSTPluginUI::get_XID ()
 	   to embed it in the GTK UI
 	*/
 
-	pthread_mutex_lock (&(_vst->state()->lock));
+	_vst->state()->lock.lock();
 
 	/* The Window may be scheduled for creation
 	   but not actually created by the gui_event_loop yet -
@@ -175,7 +175,7 @@ LXVSTPluginUI::get_XID ()
 
 	int const id = _vst->state()->xid;
 
-	pthread_mutex_unlock (&(_vst->state()->lock));
+	_vst->state()->lock.unlock();
 
 	/* Finally it might be safe to return the ID -
 	   problems will arise if we return either a zero ID

@@ -46,7 +46,7 @@ struct ERect {
 	short right;
 };
 
-static pthread_mutex_t  plugin_mutex;
+static std::mutex  plugin_mutex;
 static VSTState*        fst_first        = NULL; /**< Head of linked list of all FSTs */
 static int              host_initialized = 0;
 static const char       magic[]          =  "FST Plugin State v002";
@@ -112,7 +112,7 @@ idle_hands(
 {
 	VSTState* fst;
 
-	pthread_mutex_lock (&plugin_mutex);
+	plugin_mutex->lock();
 
 	for (fst = fst_first; fst; fst = fst->next) {
 		if (fst->gui_shown) {
@@ -125,7 +125,7 @@ idle_hands(
 			}
 		}
 
-		pthread_mutex_lock (&fst->lock);
+		fst->lock.lock();
 
 		/* See comment for call below */
 		vststate_maybe_set_program (fst);
@@ -144,16 +144,16 @@ idle_hands(
 			fst->program_set_without_editor = 1;
 		}
 
-		pthread_mutex_unlock (&fst->lock);
+		fst->lock.unlock();
 	}
 
-	pthread_mutex_unlock (&plugin_mutex);
+	plugin_mutex->unlock();
 }
 
 static void
 fst_idle_timer_add_plugin (VSTState* fst)
 {
-	pthread_mutex_lock (&plugin_mutex);
+	plugin_mutex->lock();
 
 	if (fst_first == NULL) {
 		fst_first = fst;
@@ -165,7 +165,7 @@ fst_idle_timer_add_plugin (VSTState* fst)
 		p->next = fst;
 	}
 
-	pthread_mutex_unlock (&plugin_mutex);
+	plugin_mutex->unlock();
 }
 
 static void
@@ -174,7 +174,7 @@ fst_idle_timer_remove_plugin (VSTState* fst)
 	VSTState* p;
 	VSTState* prev;
 
-	pthread_mutex_lock (&plugin_mutex);
+	plugin_mutex->lock();
 
 	for (p = fst_first, prev = NULL; p; prev = p, p = p->next) {
 		if (p == fst) {
@@ -192,7 +192,7 @@ fst_idle_timer_remove_plugin (VSTState* fst)
 		fst_first = fst_first->next;
 	}
 
-	pthread_mutex_unlock (&plugin_mutex);
+	plugin_mutex->unlock();
 }
 
 static VSTState*
@@ -256,7 +256,7 @@ fst_init (void* possible_hmodule)
 	wclass.lpszClassName = "FST";
 	wclass.hIconSm = 0;
 
-	pthread_mutex_init (&plugin_mutex, NULL);
+	plugin_mutex = new std::mutex;
 	host_initialized = -1;
 
 	if (!RegisterClassExA(&wclass)){
@@ -280,7 +280,7 @@ fst_exit (void)
 	}
 
 	host_initialized = FALSE;
-	pthread_mutex_destroy (&plugin_mutex);
+	delete plugin_mutex;
 }
 
 

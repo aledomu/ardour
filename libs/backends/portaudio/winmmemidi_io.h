@@ -133,7 +133,7 @@ private: // Data
 	void  * m_changed_arg;
 
 	// protects access to m_inputs and m_outputs
-	pthread_mutex_t m_device_lock;
+	std::mutex m_device_lock;
 };
 
 } // namespace

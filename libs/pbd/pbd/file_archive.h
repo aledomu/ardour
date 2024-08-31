@@ -19,6 +19,7 @@
 #define _pbd_archive_h_
 
 #include <atomic>
+#include <condition_variable>
 
 #include <archive.h>
 #include <archive_entry.h>
@@ -65,8 +66,8 @@ class LIBPBD_API FileArchive
 					, query_length (false)
 					, progress (p)
 				{
-					pthread_mutex_init (&_lock, NULL);
-					pthread_cond_init (&_ready, NULL);
+					std::mutex inner_lock;
+					_lock = std::unique_lock(inner_lock, std::defer_lock);
 					reset ();
 				}
 
@@ -75,9 +76,6 @@ class LIBPBD_API FileArchive
 					lock ();
 					free (data);
 					unlock ();
-
-					pthread_mutex_destroy (&_lock);
-					pthread_cond_destroy (&_ready);
 				}
 
 				void reset ()
@@ -92,10 +90,10 @@ class LIBPBD_API FileArchive
 					unlock ();
 				}
 
-				void lock ()   { pthread_mutex_lock (&_lock); }
-				void unlock () { pthread_mutex_unlock (&_lock); }
-				void signal () { pthread_cond_signal (&_ready); }
-				void wait ()   { pthread_cond_wait (&_ready, &_lock); }
+				void lock ()   { _lock.lock(); }
+				void unlock () { _lock.unlock(); }
+				void signal () { _ready.notify_one(); }
+				void wait ()   { _ready.wait(_lock); }
 
 				uint8_t  buf[8192];
 				uint8_t* data;
@@ -109,8 +107,8 @@ class LIBPBD_API FileArchive
 				Progress* progress;
 
 			private:
-				pthread_mutex_t _lock;
-				pthread_cond_t  _ready;
+				std::unique_lock<std::mutex> _lock;
+				std::condition_variable _ready;
 		};
 
 		struct Request {

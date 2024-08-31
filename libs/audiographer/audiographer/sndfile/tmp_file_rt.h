@@ -1,6 +1,7 @@
 #ifndef AUDIOGRAPHER_TMP_FILE_RT_H
 #define AUDIOGRAPHER_TMP_FILE_RT_H
 
+#include <condition_variable>
 #include <cstdio>
 #include <string>
 
@@ -53,8 +54,6 @@ class TmpFileRt
 			SndfileBase::close();
 			std::remove(filename.c_str());
 		}
-		pthread_mutex_destroy (&_disk_thread_lock);
-		pthread_cond_destroy  (&_data_ready);
 	}
 
 	/// Writes data to file
@@ -81,9 +80,9 @@ class TmpFileRt
 			SndfileWriter<T>::FileWritten (filename);
 		}
 
-		if (pthread_mutex_trylock (&_disk_thread_lock) == 0) {
-			pthread_cond_signal (&_data_ready);
-			pthread_mutex_unlock (&_disk_thread_lock);
+		if (_disk_thread_lock.try_lock()) {
+			_data_ready.notify_one();
+			_disk_thread_lock.unlock();
 		}
 	}
 
@@ -93,7 +92,7 @@ class TmpFileRt
 	{
 		T *framebuf = (T*) malloc (_chunksize * sizeof (T));
 
-		pthread_mutex_lock (&_disk_thread_lock);
+		_disk_thread_lock.lock();
 
 		while (_capture) {
 			if ((samplecnt_t)_rb.read_space () >= _chunksize) {
@@ -105,7 +104,7 @@ class TmpFileRt
 			if (!_capture) {
 				break;
 			}
-			pthread_cond_wait (&_data_ready, &_disk_thread_lock);
+			_data_ready.wait(_disk_thread_lock);
 		}
 
 		// flush ringbuffer
@@ -117,7 +116,7 @@ class TmpFileRt
 		}
 
 		SndfileWriter<T>::writeSync();
-		pthread_mutex_unlock (&_disk_thread_lock);
+		_disk_thread_lock.unlock();
 		free (framebuf);
 		TmpFile<T>::FileFlushed ();
 	}
@@ -129,8 +128,8 @@ class TmpFileRt
 	samplecnt_t _chunksize;
 	PBD::RingBuffer<T> _rb;
 
-	pthread_mutex_t _disk_thread_lock;
-	pthread_cond_t  _data_ready;
+	std::unique_lock<std::mutex> _disk_thread_lock;
+	std::condition_variable      _data_ready;
 	pthread_t _thread_id;
 
 	static void * _disk_thread (void *arg)
@@ -143,10 +142,10 @@ class TmpFileRt
 	}
 
 	void end_write () {
-		pthread_mutex_lock (&_disk_thread_lock);
+		_disk_thread_lock.lock();
 		_capture = false;
-		pthread_cond_signal (&_data_ready);
-		pthread_mutex_unlock (&_disk_thread_lock);
+		_data_ready.notify_one();
+		_disk_thread_lock.unlock();
 		pthread_join (_thread_id, NULL);
 	}
 
@@ -155,8 +154,8 @@ class TmpFileRt
 		SndfileWriter<T>::samples_written = 0;
 		_capture = true;
 		SndfileWriter<T>::add_supported_flag (ProcessContext<T>::EndOfInput);
-		pthread_mutex_init (&_disk_thread_lock, 0);
-		pthread_cond_init  (&_data_ready, 0);
+		std::mutex inner_disk_thread_lock;
+		_disk_thread_lock = std::unique_lock(inner_disk_thread_lock, std::defer_lock);
 
 		if (pthread_create (&_thread_id, NULL, _disk_thread, this)) {
 			_capture = false;

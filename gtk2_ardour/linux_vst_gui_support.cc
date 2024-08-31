@@ -26,7 +26,6 @@
 #include <libgen.h>
 #include <assert.h>
 
-#include <pthread.h>
 #include <signal.h>
 #include <glib.h>
 #include <glibmm/timer.h>
@@ -42,7 +41,6 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-#include <pthread.h>
 #include <sys/time.h>
 
 struct ERect{
@@ -52,7 +50,7 @@ struct ERect{
     short right;
 };
 
-static pthread_mutex_t plugin_mutex;
+static std::mutex plugin_mutex;
 
 static VSTState * vstfx_first = NULL;
 
@@ -358,11 +356,11 @@ gui_event_loop (void* ptr)
 				/*Call dispatch events, with the event, for each plugin in the linked list*/
 
 				for (vstfx = vstfx_first; vstfx; vstfx = vstfx->next) {
-					pthread_mutex_lock (&vstfx->lock);
+					vstfx->lock.lock();
 
 					dispatch_x_events (&event, vstfx);
 
-					pthread_mutex_unlock (&vstfx->lock);
+					vstfx->lock.unlock();
 				}
 
 				num_events--;
@@ -380,14 +378,14 @@ gui_event_loop (void* ptr)
 
 		if ((LXVST_sched_timer_interval != 0) && elapsed_time_ms >= LXVST_sched_timer_interval) {
 			//printf ("elapsed %d ms ^= %.2f Hz\n", elapsed_time_ms, 1000.0/ (double)elapsed_time_ms); // DEBUG
-			pthread_mutex_lock (&plugin_mutex);
+			plugin_mutex->lock();
 
 again:
 			/*Parse through the linked list of plugins*/
 
 			for (vstfx = vstfx_first; vstfx; vstfx = vstfx->next)
 			{
-				pthread_mutex_lock (&vstfx->lock);
+				vstfx->lock.lock();
 
 				/*Window scheduled for destruction*/
 
@@ -403,8 +401,8 @@ again:
 
 					vstfx_event_loop_remove_plugin (vstfx);
 					vstfx->been_activated = FALSE;
-					pthread_cond_signal (&vstfx->window_status_change);
-					pthread_mutex_unlock (&vstfx->lock);
+					vstfx->window_status_change.notify_one();
+					vstfx->lock.unlock();
 
 					goto again;
 				}
@@ -416,8 +414,8 @@ again:
 					if (vstfx_create_editor (vstfx)) {
 						vstfx_error ("** ERROR ** VSTFX : Cannot create editor for plugin %s", vstfx->handle->name);
 						vstfx_event_loop_remove_plugin (vstfx);
-						pthread_cond_signal (&vstfx->window_status_change);
-						pthread_mutex_unlock (&vstfx->lock);
+						vstfx->window_status_change.notify_one();
+						vstfx->lock.unlock();
 						goto again;
 					} else {
 						/* condition/unlock: it was signalled & unlocked in fst_create_editor() */
@@ -441,7 +439,7 @@ again:
 						);
 
 					vstfx->dispatcher_wantcall = 0;
-					pthread_cond_signal (&vstfx->plugin_dispatcher_called);
+					vstfx->plugin_dispatcher_called.notify_one();
 				}
 
 				/*Call the editor Idle function in the plugin*/
@@ -457,9 +455,9 @@ again:
 					vstfx->plugin->dispatcher (vstfx->plugin, 53, 0, 0, NULL, 0);
 				}
 
-				pthread_mutex_unlock (&vstfx->lock);
+				vstfx->lock.unlock();
 			}
-			pthread_mutex_unlock (&plugin_mutex);
+			plugin_mutex->unlock();
 
 			clock1 = g_get_monotonic_time();
 		}
@@ -507,7 +505,8 @@ normally started in globals.cc*/
 int vstfx_init (void* ptr)
 {
 	assert (gui_state == -1);
-	pthread_mutex_init (&plugin_mutex, NULL);
+	std::mutex inner_plugin_mutex;
+	plugin_mutex = unqie_lock(inner_plugin_mutex);
 
 	int thread_create_result;
 
@@ -577,14 +576,14 @@ void vstfx_exit ()
 	we know when it has stopped*/
 
 	pthread_join(LXVST_gui_event_thread, NULL);
-	pthread_mutex_destroy (&plugin_mutex);
+	delete plugin_mutex;
 }
 
 /*Adds a new plugin (VSTFX) instance to the linked list*/
 
 int vstfx_run_editor (VSTState* vstfx)
 {
-	pthread_mutex_lock (&plugin_mutex);
+	plugin_mutex->lock();
 
 	/* Add the new VSTFX instance to the linked list */
 
@@ -603,17 +602,17 @@ int vstfx_run_editor (VSTState* vstfx)
 		vstfx->next = NULL;
 	}
 
-	pthread_mutex_unlock (&plugin_mutex);
+	plugin_mutex->unlock();
 
 	/* wait for the plugin editor window to be created (or not) */
 
-	pthread_mutex_lock (&vstfx->lock);
+	vstfx->lock.lock();
 
 	if (!vstfx->linux_window) {
-		pthread_cond_wait (&vstfx->window_status_change, &vstfx->lock);
+		vstfx->window_status_change.wait(vstfx->lock);
 	}
 
-	pthread_mutex_unlock (&vstfx->lock);
+	vstfx->lock.unlock();
 
 	if (!vstfx->linux_window) {
 		return -1;
@@ -775,7 +774,7 @@ vstfx_launch_editor (VSTState* vstfx)
 
 	vstfx->been_activated = TRUE;
 
-	pthread_cond_signal (&vstfx->window_status_change);
+	vstfx->window_status_change.notify_one();
 	return 0;
 }
 
@@ -784,12 +783,12 @@ void
 vstfx_destroy_editor (VSTState* vstfx)
 {
 	assert (0 == gui_state);
-	pthread_mutex_lock (&vstfx->lock);
+	vstfx->lock.lock();
 	if (vstfx->linux_window) {
 		vstfx->destroy = TRUE;
-		pthread_cond_wait (&vstfx->window_status_change, &vstfx->lock);
+		vstfx->window_status_change.wait(vstfx->lock);
 	}
-	pthread_mutex_unlock (&vstfx->lock);
+	vstfx->lock.unlock();
 }
 
 /** Remove a vstfx instance from the linked list parsed by the

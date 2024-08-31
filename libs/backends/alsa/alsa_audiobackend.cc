@@ -78,7 +78,6 @@ AlsaAudioBackend::AlsaAudioBackend (AudioEngine& e, AudioBackendInfo& info)
 	, _processed_samples (0)
 {
 	_instance_name = s_instance_name;
-	pthread_mutex_init (&_device_port_mutex, 0);
 	_input_audio_device_info.valid  = false;
 	_output_audio_device_info.valid = false;
 
@@ -88,8 +87,6 @@ AlsaAudioBackend::AlsaAudioBackend (AudioEngine& e, AudioBackendInfo& info)
 AlsaAudioBackend::~AlsaAudioBackend ()
 {
 	clear_ports ();
-
-	pthread_mutex_destroy (&_device_port_mutex);
 }
 
 /* AUDIOBACKEND API */
@@ -495,7 +492,7 @@ AlsaAudioBackend::update_systemic_audio_latencies ()
 void
 AlsaAudioBackend::update_systemic_midi_latencies ()
 {
-	pthread_mutex_lock (&_device_port_mutex);
+	_device_port_mutex.lock();
 	uint32_t i = 0;
 	for (std::vector<BackendPortPtr>::iterator it = _system_midi_out.begin (); it != _system_midi_out.end (); ++it, ++i) {
 		assert (_rmidi_out.size () > i);
@@ -517,7 +514,7 @@ AlsaAudioBackend::update_systemic_midi_latencies ()
 		lr.min = lr.max = (_measure_latency ? 0 : nfo->systemic_input_latency);
 		set_latency_range (*it, false, lr);
 	}
-	pthread_mutex_unlock (&_device_port_mutex);
+	_device_port_mutex.unlock();
 	update_latencies ();
 }
 
@@ -694,7 +691,7 @@ AlsaAudioBackend::set_midi_device_enabled (std::string const device, bool enable
 			register_system_midi_ports (device);
 		} else {
 			// remove all ports provided by the given device
-			pthread_mutex_lock (&_device_port_mutex);
+			_device_port_mutex.lock();
 			uint32_t i = 0;
 			for (std::vector<BackendPortPtr>::iterator it = _system_midi_out.begin (); it != _system_midi_out.end ();) {
 				assert (_rmidi_out.size () > i);
@@ -728,7 +725,7 @@ AlsaAudioBackend::set_midi_device_enabled (std::string const device, bool enable
 				_rmidi_in.erase (_rmidi_in.begin () + i);
 				delete rm;
 			}
-			pthread_mutex_unlock (&_device_port_mutex);
+			_device_port_mutex.unlock();
 		}
 		update_systemic_midi_latencies ();
 	}
@@ -1407,11 +1404,11 @@ AlsaAudioBackend::stop_listen_for_midi_device_changes ()
 void
 AlsaAudioBackend::update_system_port_latencies ()
 {
-	pthread_mutex_lock (&_device_port_mutex);
+	_device_port_mutex.lock();
 
 	PortEngineSharedImpl::update_system_port_latencies ();
 
-	pthread_mutex_unlock (&_device_port_mutex);
+	_device_port_mutex.unlock();
 
 	for (AudioSlaves::iterator s = _slaves.begin (); s != _slaves.end (); ++s) {
 		if ((*s)->dead) {
@@ -1522,9 +1519,9 @@ AlsaAudioBackend::register_system_midi_ports (const std::string device)
 					std::dynamic_pointer_cast<AlsaMidiPort> (p)->set_n_periods (_periods_per_cycle); // TODO check MIDI alignment
 					BackendPortPtr ap = std::dynamic_pointer_cast<BackendPort> (p);
 					ap->set_hw_port_name (replace_name_io (i->first, false));
-					pthread_mutex_lock (&_device_port_mutex);
+					_device_port_mutex.lock();
 					_system_midi_out.push_back (ap);
-					pthread_mutex_unlock (&_device_port_mutex);
+					_device_port_mutex.unlock();
 					_rmidi_out.push_back (mout);
 				}
 			}
@@ -1565,9 +1562,9 @@ AlsaAudioBackend::register_system_midi_ports (const std::string device)
 				set_latency_range (p, false, lr);
 				BackendPortPtr ap = std::dynamic_pointer_cast<BackendPort> (p);
 				ap->set_hw_port_name (replace_name_io (i->first, true));
-				pthread_mutex_lock (&_device_port_mutex);
+				_device_port_mutex.lock();
 				_system_midi_in.push_back (ap);
-				pthread_mutex_unlock (&_device_port_mutex);
+				_device_port_mutex.unlock();
 				_rmidi_in.push_back (midin);
 			}
 		}
@@ -1872,7 +1869,7 @@ AlsaAudioBackend::main_process_thread ()
 				}
 
 				/* only used when adding/removing MIDI device/system ports */
-				pthread_mutex_lock (&_device_port_mutex);
+				_device_port_mutex.lock();
 				/* de-queue incoming midi*/
 				i = 0;
 				for (std::vector<BackendPortPtr>::const_iterator it = _system_midi_in.begin (); it != _system_midi_in.end (); ++it, ++i) {
@@ -1889,7 +1886,7 @@ AlsaAudioBackend::main_process_thread ()
 					}
 					rm->sync_time (clock1);
 				}
-				pthread_mutex_unlock (&_device_port_mutex);
+				_device_port_mutex.unlock();
 
 				for (std::vector<BackendPortPtr>::const_iterator it = _system_outputs.begin (); it != _system_outputs.end (); ++it) {
 					memset ((*it)->get_buffer (_samples_per_period), 0, _samples_per_period * sizeof (Sample));
@@ -1904,7 +1901,7 @@ AlsaAudioBackend::main_process_thread ()
 				}
 
 				/* only used when adding/removing MIDI device/system ports */
-				pthread_mutex_lock (&_device_port_mutex);
+				_device_port_mutex.lock();
 				for (std::vector<BackendPortPtr>::iterator it = _system_midi_out.begin (); it != _system_midi_out.end (); ++it) {
 					std::dynamic_pointer_cast<AlsaMidiPort> (*it)->next_period ();
 				}
@@ -1920,7 +1917,7 @@ AlsaAudioBackend::main_process_thread ()
 						rm->send_event (mit->timestamp (), mit->data (), mit->size ());
 					}
 				}
-				pthread_mutex_unlock (&_device_port_mutex);
+				_device_port_mutex.unlock();
 
 				/* write back audio */
 				i = 0;
@@ -1974,7 +1971,7 @@ AlsaAudioBackend::main_process_thread ()
 
 			clock1     = g_get_monotonic_time ();
 			uint32_t i = 0;
-			pthread_mutex_lock (&_device_port_mutex);
+			_device_port_mutex.lock();
 			for (std::vector<BackendPortPtr>::const_iterator it = _system_midi_in.begin (); it != _system_midi_in.end (); ++it, ++i) {
 				static_cast<AlsaMidiBuffer*> ((*it)->get_buffer (0))->clear ();
 				AlsaMidiIn* rm   = _rmidi_in.at (i);
@@ -1990,7 +1987,7 @@ AlsaAudioBackend::main_process_thread ()
 				}
 				rm->sync_time (clock1);
 			}
-			pthread_mutex_unlock (&_device_port_mutex);
+			_device_port_mutex.unlock();
 
 			_last_process_start = 0;
 			if (engine.process_callback (_samples_per_period)) {
@@ -2000,12 +1997,12 @@ AlsaAudioBackend::main_process_thread ()
 			}
 
 			// drop all outgoing MIDI messages
-			pthread_mutex_lock (&_device_port_mutex);
+			_device_port_mutex.lock();
 			for (std::vector<BackendPortPtr>::const_iterator it = _system_midi_out.begin (); it != _system_midi_out.end (); ++it) {
 				void* bptr = (*it)->get_buffer (0);
 				midi_clear (bptr);
 			}
-			pthread_mutex_unlock (&_device_port_mutex);
+			_device_port_mutex.unlock();
 
 			_dsp_load = 1.0;
 			reset_dll = true;
@@ -2014,7 +2011,7 @@ AlsaAudioBackend::main_process_thread ()
 
 		bool connections_changed = false;
 		bool ports_changed       = false;
-		if (!pthread_mutex_trylock (&_port_callback_mutex)) {
+		if (_port_callback_mutex.try_lock()) {
 			int canderef (1);
 			if (_port_change_flag.compare_exchange_strong (canderef, 0)) {
 				ports_changed = true;
@@ -2023,7 +2020,7 @@ AlsaAudioBackend::main_process_thread ()
 				connections_changed = true;
 			}
 			process_connection_queue_locked (manager);
-			pthread_mutex_unlock (&_port_callback_mutex);
+			_port_callback_mutex.unlock();
 		}
 		if (ports_changed) {
 			manager.registration_callback ();

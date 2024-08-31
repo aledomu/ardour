@@ -44,7 +44,7 @@
    StackOverflow. It is used with his permission. */
 typedef int pthread_barrierattr_t;
 typedef struct pthread_barrier {
-    pthread_mutex_t mutex;
+    std::mutex mutex;
     pthread_cond_t cond;
     int count;
     int trip_count;
@@ -136,7 +136,7 @@ struct hid_device_ {
 	struct hid_device_info* device_info;
 
 	pthread_t thread;
-	pthread_mutex_t mutex; /* Protects input_reports */
+	std::mutex mutex; /* Protects input_reports */
 	pthread_cond_t condition;
 	pthread_barrier_t barrier; /* Ensures correct startup sequence */
 	pthread_barrier_t shutdown_barrier; /* Ensures correct shutdown sequence */

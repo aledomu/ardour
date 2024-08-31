@@ -42,9 +42,9 @@
 #endif
 
 #include <string>
-#include <pthread.h>
 #include <signal.h>
 #include <map>
+#include <mutex>
 
 #ifdef NOPBD  /* unit-test outside ardour */
 #include <sigc++/bind.h>
@@ -249,7 +249,7 @@ class LIBPBD_API SystemExec
 		char **argx;
 #endif
 		void init ();
-		pthread_mutex_t write_lock;
+		std::mutex write_lock;
 
 		int pok[2];
 		int pin[2];

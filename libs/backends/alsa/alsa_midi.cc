@@ -43,9 +43,6 @@ AlsaMidiIO::AlsaMidiIO ()
 	, _samples_per_period (1024)
 	, _rb (0)
 {
-	pthread_mutex_init (&_notify_mutex, 0);
-	pthread_cond_init (&_notify_ready, 0);
-
 	// MIDI (hw port) 31.25 kbaud
 	// worst case here is  8192 SPP and 8KSPS for which we'd need
 	// 4000 bytes sans MidiEventHeader.
@@ -56,8 +53,6 @@ AlsaMidiIO::AlsaMidiIO ()
 AlsaMidiIO::~AlsaMidiIO ()
 {
 	delete _rb;
-	pthread_mutex_destroy (&_notify_mutex);
-	pthread_cond_destroy (&_notify_ready);
 	free (_pfds);
 }
 
@@ -101,9 +96,9 @@ AlsaMidiIO::stop ()
 
 	_running = false;
 
-	pthread_mutex_lock (&_notify_mutex);
-	pthread_cond_signal (&_notify_ready);
-	pthread_mutex_unlock (&_notify_mutex);
+	_notify_mutex.lock();
+	_notify_ready.notify_one();
+	_notify_mutex.unlock();
 
 	if (pthread_join (_main_thread, &status)) {
 		PBD::error << _("AlsaMidiIO: Failed to terminate.") << endmsg;
@@ -155,9 +150,9 @@ AlsaMidiOut::send_event (const pframes_t time, const uint8_t *data, const size_t
 	_rb->write ((uint8_t*) &h, sizeof(MidiEventHeader));
 	_rb->write (data, size);
 
-	if (pthread_mutex_trylock (&_notify_mutex) == 0) {
-		pthread_cond_signal (&_notify_ready);
-		pthread_mutex_unlock (&_notify_mutex);
+	if (_notify_mutex.try_lock()) {
+		_notify_ready.notify_one();
+		_notify_mutex.unlock();
 	}
 	return 0;
 }

@@ -36,7 +36,6 @@
 #include "video_timeline.h"
 
 #include <gtkmm2ext/utils.h>
-#include <pthread.h>
 #include <curl/curl.h>
 
 #include "pbd/i18n.h"

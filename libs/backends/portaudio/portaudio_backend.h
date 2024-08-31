@@ -298,8 +298,8 @@ class PortAudioBackend : public AudioBackend, public PortEngineSharedImpl {
 
 		bool _freewheel_thread_active;
 
-		pthread_mutex_t _freewheel_mutex;
-		pthread_cond_t _freewheel_signal;
+		std::mutex _freewheel_mutex;
+		std::condition_variable _freewheel_signal;
 
 		uint64_t _cycle_count;
 		uint64_t _total_deviation_us;

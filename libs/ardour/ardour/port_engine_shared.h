@@ -192,14 +192,14 @@ protected:
 	};
 
 	std::vector<PortConnectData *> _port_connection_queue;
-	pthread_mutex_t _port_callback_mutex;
+	std::mutex _port_callback_mutex;
 
 	std::atomic<int> _port_change_flag; /* atomic */
 
 	void port_connect_callback (const std::string& a, const std::string& b, bool conn) {
-		pthread_mutex_lock (&_port_callback_mutex);
+		_port_callback_mutex.lock();
 		_port_connection_queue.push_back(new PortConnectData(a, b, conn));
-		pthread_mutex_unlock (&_port_callback_mutex);
+		_port_callback_mutex.unlock();
 	}
 
 	void process_connection_queue_locked (PortManager& mgr);

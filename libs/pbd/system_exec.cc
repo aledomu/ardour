@@ -63,7 +63,6 @@ static void close_fd (int& fd) { if (fd >= 0) ::close (fd); fd = -1; }
 void
 SystemExec::init ()
 {
-	pthread_mutex_init (&write_lock, NULL);
 	thread_active = false;
 	pid = 0;
 	pin[1] = -1;
@@ -272,7 +271,6 @@ SystemExec::~SystemExec ()
 		free (argx);
 	}
 #endif
-	pthread_mutex_destroy(&write_lock);
 }
 
 static void*
@@ -402,7 +400,7 @@ SystemExec::make_argp (std::string args)
 void
 SystemExec::terminate ()
 {
-	::pthread_mutex_lock(&write_lock);
+	write_lock.lock();
 
 	close_stdin();
 
@@ -431,7 +429,7 @@ SystemExec::terminate ()
 
 	if (thread_active) pthread_join(thread_id_tt, NULL);
 	thread_active = false;
-	::pthread_mutex_unlock(&write_lock);
+	write_lock.unlock();
 }
 
 int
@@ -579,7 +577,7 @@ SystemExec::write_to_stdin (const void* data, size_t bytes)
 {
 	DWORD r, c;
 
-	::pthread_mutex_lock (&write_lock);
+	write_lock.lock();
 
 	c=0;
 	while (c < bytes) {
@@ -594,7 +592,7 @@ SystemExec::write_to_stdin (const void* data, size_t bytes)
 		}
 		c += r;
 	}
-	::pthread_mutex_unlock(&write_lock);
+	write_lock.unlock();
 	return c;
 }
 
@@ -670,7 +668,7 @@ SystemExec::make_argp(std::string args)
 void
 SystemExec::terminate ()
 {
-	::pthread_mutex_lock(&write_lock);
+	write_lock.lock();
 
 	/* close stdin in an attempt to get the child to exit cleanly.
 	 */
@@ -714,7 +712,7 @@ SystemExec::terminate ()
 	if (thread_active) pthread_join(thread_id_tt, NULL);
 	thread_active = false;
 	assert(pid == 0);
-	::pthread_mutex_unlock(&write_lock);
+	write_lock.unlock();
 }
 
 int
@@ -937,7 +935,7 @@ SystemExec::write_to_stdin (const void* data, size_t bytes)
 {
 	ssize_t r;
 	size_t c;
-	::pthread_mutex_lock (&write_lock);
+	write_lock.lock();
 
 	c = 0;
 	while (c < bytes) {
@@ -950,13 +948,13 @@ SystemExec::write_to_stdin (const void* data, size_t bytes)
 				g_usleep(100000);
 				continue;
 			}
-			::pthread_mutex_unlock(&write_lock);
+			write_lock.unlock();
 			return c;
 		}
 		c += r;
 	}
 	fsync (pin[1]);
-	::pthread_mutex_unlock(&write_lock);
+	write_lock.unlock();
 	return c;
 }
 

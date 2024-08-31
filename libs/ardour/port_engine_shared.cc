@@ -274,12 +274,10 @@ PortEngineSharedImpl::PortEngineSharedImpl (PortManager& mgr, std::string const 
 	, _portregistry (new PortRegistry)
 {
 	_port_change_flag.store (0);
-	pthread_mutex_init (&_port_callback_mutex, 0);
 }
 
 PortEngineSharedImpl::~PortEngineSharedImpl ()
 {
-	pthread_mutex_destroy (&_port_callback_mutex);
 }
 
 int
@@ -525,9 +523,9 @@ PortEngineSharedImpl::clear_ports ()
 	_portregistry.flush ();
 
 	_port_change_flag.store (0);
-	pthread_mutex_lock (&_port_callback_mutex);
+	_port_callback_mutex.lock();
 	_port_connection_queue.clear();
-	pthread_mutex_unlock (&_port_callback_mutex);
+	_port_callback_mutex.unlock();
 }
 
 uint32_t

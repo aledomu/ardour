@@ -1759,8 +1759,8 @@ private:
 	pthread_t       _rt_emit_thread;
 	bool            _rt_thread_active;
 
-	pthread_mutex_t _rt_emit_mutex;
-	pthread_cond_t  _rt_emit_cond;
+	std::unique_lock<std::mutex> _rt_emit_mutex;
+	std::condition_variable*     _rt_emit_cond;
 	bool            _rt_emit_pending;
 
 	/* Auto Connect Thread */
@@ -1771,8 +1771,8 @@ private:
 
 	pthread_t        _auto_connect_thread;
 	std::atomic<int> _ac_thread_active;
-	pthread_mutex_t  _auto_connect_mutex;
-	pthread_cond_t   _auto_connect_cond;
+	std::unique_lock<std::mutex> _auto_connect_mutex;
+	std::condition_variable*     _auto_connect_cond;
 
 	struct AutoConnectRequest {
 		public:

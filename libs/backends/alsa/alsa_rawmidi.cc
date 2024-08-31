@@ -115,7 +115,7 @@ void *
 AlsaRawMidiOut::main_process_thread ()
 {
 	_running = true;
-	pthread_mutex_lock (&_notify_mutex);
+	_notify_mutex.lock();
 	unsigned int need_drain = 0;
 	while (_running) {
 		bool have_data = false;
@@ -147,7 +147,7 @@ AlsaRawMidiOut::main_process_thread ()
 				snd_rawmidi_drain (_device);
 				need_drain = 0;
 			}
-			pthread_cond_wait (&_notify_ready, &_notify_mutex);
+			_notify_ready.wait(_notify_mutex);
 			continue;
 		}
 
@@ -225,7 +225,7 @@ retry:
 		}
 	}
 
-	pthread_mutex_unlock (&_notify_mutex);
+	_notify_mutex.unlock();
 	_DEBUGPRINT("AlsaRawMidiOut: MIDI OUT THREAD STOPPED\n");
 	return 0;
 }

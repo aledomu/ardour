@@ -154,9 +154,9 @@ Session::process (pframes_t nframes)
 		if (!_rt_thread_active) {
 			emit_route_signals ();
 		}
-		if (pthread_mutex_trylock (&_rt_emit_mutex) == 0) {
-			pthread_cond_signal (&_rt_emit_cond);
-			pthread_mutex_unlock (&_rt_emit_mutex);
+		if (_rt_emit_mutex.try_lock()) {
+			_rt_emit_cond->notify_one();
+			_rt_emit_mutex.unlock();
 			_rt_emit_pending = false;
 		}
 	}
@@ -1211,10 +1211,11 @@ Session::emit_thread_terminate ()
 	}
 	_rt_thread_active = false;
 
-	if (pthread_mutex_lock (&_rt_emit_mutex) == 0) {
-		pthread_cond_signal (&_rt_emit_cond);
-		pthread_mutex_unlock (&_rt_emit_mutex);
-	}
+	try {
+		_rt_emit_mutex.lock();
+		_rt_emit_cond->notify_one();
+		_rt_emit_mutex.unlock();
+	} catch (const std::system_error&) {}
 
 	void *status;
 	pthread_join (_rt_emit_thread, &status);
@@ -1233,12 +1234,12 @@ Session::emit_thread (void *arg)
 void
 Session::emit_thread_run ()
 {
-	pthread_mutex_lock (&_rt_emit_mutex);
+	_rt_emit_mutex.lock();
 	while (_rt_thread_active) {
 		emit_route_signals();
-		pthread_cond_wait (&_rt_emit_cond, &_rt_emit_mutex);
+		_rt_emit_cond->wait(_rt_emit_mutex);
 	}
-	pthread_mutex_unlock (&_rt_emit_mutex);
+	_rt_emit_mutex.unlock();
 }
 
 double

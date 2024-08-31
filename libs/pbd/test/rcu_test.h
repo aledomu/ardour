@@ -33,8 +33,8 @@ private:
 	SerializedRCUManager<Values> _values;
 
 #ifdef __APPLE__
-	pthread_mutex_t _mutex;
-	pthread_cond_t  _cond;
+	std::mutex _mutex;
+	std::condition_variable _cond;
 	size_t          _cnt;
 #else
 	pthread_barrier_t _barrier;

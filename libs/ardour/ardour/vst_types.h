@@ -21,6 +21,9 @@
 #ifndef __ardour_vst_types_h__
 #define __ardour_vst_types_h__
 
+#include <condition_variable>
+#include <mutex>
+
 #include <pthread.h>
 #include "ardour/libardour_visibility.h"
 #include "ardour/vestige/vestige.h"
@@ -120,11 +123,11 @@ struct LIBARDOUR_API _VSTState
 	int     dispatcher_retval;
 
 	struct _VSTState* next;
-	pthread_mutex_t   lock;
-	pthread_mutex_t   state_lock;
-	pthread_cond_t    window_status_change;
-	pthread_cond_t    plugin_dispatcher_called;
-	pthread_cond_t    window_created;
+	std::unique_lock<std::mutex> lock;
+	std::unique_lock<std::mutex> state_lock;
+	std::condition_variable* window_status_change;
+	std::condition_variable* plugin_dispatcher_called;
+	std::condition_variable* window_created;
 	int               been_activated;
 };
 

@@ -21,25 +21,10 @@
 #ifndef _ZITA_RESAMPLER_TABLE_H_
 #define _ZITA_RESAMPLER_TABLE_H_
 
-#include <pthread.h>
+#include <mutex>
 #include "zita-resampler/zresampler_visibility.h"
 
 namespace ArdourZita {
-
-class LIBZRESAMPLER_API Resampler_mutex
-{
-private:
-
-	friend class Resampler_table;
-
-	Resampler_mutex (void) { pthread_mutex_init (&_mutex, 0); }
-	~Resampler_mutex (void) { pthread_mutex_destroy (&_mutex); }
-	void lock (void) { pthread_mutex_lock (&_mutex); }
-	void unlock (void) { pthread_mutex_unlock (&_mutex); }
-
-	pthread_mutex_t  _mutex;
-};
-
 
 class LIBZRESAMPLER_API Resampler_table
 {
@@ -62,7 +47,7 @@ private:
 	static void destroy (Resampler_table *T);
 
 	static Resampler_table  *_list;
-	static Resampler_mutex   _mutex;
+	static std::mutex        _mutex;
 };
 
 };

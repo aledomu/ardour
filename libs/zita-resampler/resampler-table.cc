@@ -26,8 +26,8 @@
 
 using namespace ArdourZita;
 
-Resampler_table  *Resampler_table::_list = 0;
-Resampler_mutex   Resampler_table::_mutex;
+Resampler_table* Resampler_table::_list = 0;
+std::mutex       Resampler_table::_mutex;
 
 static double sinc (double x)
 {

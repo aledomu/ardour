@@ -90,8 +90,6 @@ PortAudioBackend::PortAudioBackend (AudioEngine& e, AudioBackendInfo& info)
 	, _processed_samples (0)
 {
 	_instance_name = s_instance_name;
-	pthread_mutex_init (&_freewheel_mutex, 0);
-	pthread_cond_init (&_freewheel_signal, 0);
 
 	_port_connection_queue.reserve (128);
 
@@ -105,9 +103,6 @@ PortAudioBackend::~PortAudioBackend ()
 	delete _midiio; _midiio = 0;
 
 	clear_ports ();
-
-	pthread_mutex_destroy (&_freewheel_mutex);
-	pthread_cond_destroy (&_freewheel_signal);
 }
 
 /* AUDIOBACKEND API */
@@ -735,14 +730,14 @@ PortAudioBackend::process_callback(const float* input,
 
 	if (_run && _freewheel && !_freewheel_ack) {
 		// acknowledge freewheeling; hand-over thread ID
-		pthread_mutex_lock (&_freewheel_mutex);
+		_freewheel_mutex.lock();
 		if (_freewheel) {
 			DEBUG_AUDIO("Setting _freewheel_ack = true;\n");
 			_freewheel_ack = true;
 		}
 		DEBUG_AUDIO("Signalling freewheel thread\n");
-		pthread_cond_signal (&_freewheel_signal);
-		pthread_mutex_unlock (&_freewheel_mutex);
+		_freewheel_signal.notify_one();
+		_freewheel_mutex.unlock();
 	}
 
 	if (statusFlags & paInputUnderflow ||
@@ -882,9 +877,9 @@ PortAudioBackend::stop_freewheel_process_thread ()
 
 	DEBUG_AUDIO("Signaling freewheel thread to stop\n");
 
-	pthread_mutex_lock (&_freewheel_mutex);
-	pthread_cond_signal (&_freewheel_signal);
-	pthread_mutex_unlock (&_freewheel_mutex);
+	_freewheel_mutex.lock();
+	_freewheel_signal.notify_one();
+	_freewheel_mutex.unlock();
 
 	if (pthread_join (_pthread_freewheel, &status) != 0) {
 		DEBUG_AUDIO("Failed to stop freewheel thread\n");
@@ -901,7 +896,7 @@ PortAudioBackend::freewheel_process_thread()
 
 	bool first_run = false;
 
-	pthread_mutex_lock (&_freewheel_mutex);
+	_freewheel_mutex.lock();
 
 	while(_run) {
 		// check if we should run,
@@ -923,13 +918,8 @@ PortAudioBackend::freewheel_process_thread()
 		if (!_freewheel || !_freewheel_ack) {
 			// wait for a change, we use a timed wait to
 			// terminate early in case some error sets _run = 0
-			struct timeval tv;
-			struct timespec ts;
-			gettimeofday (&tv, NULL);
-			ts.tv_sec = tv.tv_sec + 3;
-			ts.tv_nsec = 0;
 			DEBUG_AUDIO("Waiting for freewheel change\n");
-			pthread_cond_timedwait (&_freewheel_signal, &_freewheel_mutex, &ts);
+			_freewheel_signal.wait_for(_freewheel_mutex, std::chrono::seconds(3));
 			continue;
 		}
 
@@ -950,7 +940,7 @@ PortAudioBackend::freewheel_process_thread()
 		process_port_connection_changes();
 	}
 
-	pthread_mutex_unlock (&_freewheel_mutex);
+	_freewheel_mutex.unlock();
 
 	_freewheel_thread_active = false;
 
@@ -969,9 +959,9 @@ PortAudioBackend::freewheel (bool onoff)
 	}
 	_freewheeling = onoff;
 
-	if (0 == pthread_mutex_trylock (&_freewheel_mutex)) {
-		pthread_cond_signal (&_freewheel_signal);
-		pthread_mutex_unlock (&_freewheel_mutex);
+	if (_freewheel_mutex.try_lock()) {
+		_freewheel_signal.notify_one();
+		_freewheel_mutex.unlock();
 	}
 	return 0;
 }
@@ -1770,7 +1760,7 @@ PortAudioBackend::process_port_connection_changes ()
 {
 	bool connections_changed = false;
 	bool ports_changed = false;
-	if (!pthread_mutex_trylock (&_port_callback_mutex)) {
+	if (_port_callback_mutex.try_lock()) {
 		int canderef (1);
 		if (_port_change_flag.compare_exchange_strong (canderef, 0)) {
 			ports_changed = true;
@@ -1779,7 +1769,7 @@ PortAudioBackend::process_port_connection_changes ()
 			connections_changed = true;
 		}
 		process_connection_queue_locked (manager);
-		pthread_mutex_unlock (&_port_callback_mutex);
+		_port_callback_mutex.unlock();
 	}
 	if (ports_changed) {
 		manager.registration_callback();

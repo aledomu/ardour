@@ -371,11 +371,13 @@ Session::Session (AudioEngine &eng,
 
 	created_with = string_compose ("%1 %2", PROGRAM_NAME, revision);
 
-	pthread_mutex_init (&_rt_emit_mutex, 0);
-	pthread_cond_init (&_rt_emit_cond, 0);
+	std::mutex inner_rt_emit_mutex;
+	_rt_emit_mutex = unique_lock(inner_rt_emit_mutex);
+	_rt_emit_cond = new std::condition_variable();
 
-	pthread_mutex_init (&_auto_connect_mutex, 0);
-	pthread_cond_init (&_auto_connect_cond, 0);
+	std::mutex inner_auto_connect_mutex;
+	_auto_connect_mutex = unique_lock(inner_auto_connect_mutex);
+	_auto_connect_cond = new std::condition_variable();
 
 	init_name_id_counter (1); // reset for new sessions, start at 1
 	VCA::set_next_vca_number (1); // reset for new sessions, start at 1
@@ -839,11 +841,11 @@ Session::destroy ()
 
 	emit_thread_terminate ();
 
-	pthread_cond_destroy (&_rt_emit_cond);
-	pthread_mutex_destroy (&_rt_emit_mutex);
+	delete _rt_emit_cond;
+	_rt_emit_mutex.release();
 
-	pthread_cond_destroy (&_auto_connect_cond);
-	pthread_mutex_destroy (&_auto_connect_mutex);
+	delete _auto_connect_cond;
+	_auto_connect_mutex.release();
 
 	delete _scene_changer; _scene_changer = 0;
 	delete midi_control_ui; midi_control_ui = 0;
@@ -7721,9 +7723,9 @@ Session::auto_connect_route (std::shared_ptr<Route> route,
 void
 Session::auto_connect_thread_wakeup ()
 {
-	if (pthread_mutex_trylock (&_auto_connect_mutex) == 0) {
-		pthread_cond_signal (&_auto_connect_cond);
-		pthread_mutex_unlock (&_auto_connect_mutex);
+	if (_auto_connect_mutex.try_lock()) {
+		_auto_connect_cond->notify_one();
+		_auto_connect_mutex.unlock();
 	}
 }
 
@@ -7867,10 +7869,10 @@ Session::auto_connect_thread_terminate ()
 	 * fail to wakeup the thread.
 	 */
 
-	pthread_mutex_lock (&_auto_connect_mutex);
+	_auto_connect_mutex.lock();
 	_ac_thread_active.store (0);
-	pthread_cond_signal (&_auto_connect_cond);
-	pthread_mutex_unlock (&_auto_connect_mutex);
+	_auto_connect_cond->notify_one();
+	_auto_connect_mutex.unlock();
 
 	void *status;
 	pthread_join (_auto_connect_thread, &status);
@@ -7891,7 +7893,7 @@ Session::auto_connect_thread_run ()
 {
 	SessionEvent::create_per_thread_pool (X_("autoconnect"), 1024);
 	PBD::notify_event_loops_about_thread_creation (pthread_self(), X_("autoconnect"), 1024);
-	pthread_mutex_lock (&_auto_connect_mutex);
+	_auto_connect_mutex.lock();
 
 	Glib::Threads::Mutex::Lock lx (_auto_connect_queue_lock);
 	while (_ac_thread_active.load ()) {
@@ -7950,12 +7952,12 @@ Session::auto_connect_thread_run ()
 		lx.acquire ();
 		if (_auto_connect_queue.empty ()) {
 			lx.release ();
-			pthread_cond_wait (&_auto_connect_cond, &_auto_connect_mutex);
+			_auto_connect_cond->wait(_auto_connect_mutex);
 			lx.acquire ();
 		}
 	}
 	lx.release ();
-	pthread_mutex_unlock (&_auto_connect_mutex);
+	_auto_connect_mutex.unlock();
 }
 
 void

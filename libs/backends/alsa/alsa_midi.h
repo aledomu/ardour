@@ -19,6 +19,7 @@
 #ifndef __libbackend_alsa_midi_h__
 #define __libbackend_alsa_midi_h__
 
+#include <condition_variable>
 #include <stdint.h>
 #include <poll.h>
 #include <pthread.h>
@@ -50,8 +51,8 @@ public:
 
 protected:
 	pthread_t _main_thread;
-	pthread_mutex_t _notify_mutex;
-	pthread_cond_t _notify_ready;
+	std::mutex _notify_mutex;
+	std::condition_variable _notify_ready;
 
 	int  _state;
 	bool  _running;

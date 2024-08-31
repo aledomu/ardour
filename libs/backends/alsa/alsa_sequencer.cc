@@ -128,7 +128,7 @@ AlsaSeqMidiOut::main_process_thread ()
 	bool need_drain = false;
 	snd_midi_event_t *alsa_codec = NULL;
 	snd_midi_event_new (MaxAlsaMidiEventSize, &alsa_codec);
-	pthread_mutex_lock (&_notify_mutex);
+	_notify_mutex.lock();
 	while (_running) {
 		bool have_data = false;
 		struct MidiEventHeader h(0,0);
@@ -159,7 +159,7 @@ AlsaSeqMidiOut::main_process_thread ()
 				snd_seq_drain_output (_seq);
 				need_drain = false;
 			}
-			pthread_cond_wait (&_notify_ready, &_notify_mutex);
+			_notify_ready.wait(_notify_mutex);
 			continue;
 		}
 
@@ -214,7 +214,7 @@ retry:
 		need_drain = true;
 	}
 
-	pthread_mutex_unlock (&_notify_mutex);
+	_notify_mutex.unlock();
 
 	if (alsa_codec) {
 		snd_midi_event_free(alsa_codec);

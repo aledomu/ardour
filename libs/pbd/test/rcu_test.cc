@@ -71,14 +71,13 @@ void
 RCUTest::read_thread ()
 {
 #ifdef __APPLE__
-	pthread_mutex_lock (&_mutex);
+	_mutex.lock();
 	if (++_cnt == 2) {
 		pthread_cond_broadcast (&_cond);
-		pthread_mutex_unlock (&_mutex);
 	} else {
 		pthread_cond_wait (&_cond, &_mutex);
 	}
-	pthread_mutex_unlock (&_mutex);
+	_mutex.unlock();
 #else
 	pthread_barrier_wait (&_barrier);
 #endif
@@ -95,14 +94,13 @@ void
 RCUTest::write_thread ()
 {
 #ifdef __APPLE__
-	pthread_mutex_lock (&_mutex);
+	_mutex.lock();
 	if (++_cnt == 2) {
 		pthread_cond_broadcast (&_cond);
-		pthread_mutex_unlock (&_mutex);
 	} else {
 		pthread_cond_wait (&_cond, &_mutex);
 	}
-	pthread_mutex_unlock (&_mutex);
+	_mutex.unlock();
 #else
 	pthread_barrier_wait (&_barrier);
 #endif

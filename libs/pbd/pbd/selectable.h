@@ -78,7 +78,7 @@ class LIBPBD_API Selector {
 
 	typedef std::list<Selectable *> Selectables;
 	Selectables selectables;
-	pthread_mutex_t list_lock;
+	std::mutex list_lock;
 
 	static bool use_list_lock;
 

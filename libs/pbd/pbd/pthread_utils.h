@@ -41,6 +41,7 @@
 #else
 #include <pthread.h>
 #endif
+#include <mutex>
 #include <signal.h>
 #include <string>
 #include <stdint.h>

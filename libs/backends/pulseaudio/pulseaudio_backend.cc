@@ -1054,7 +1054,7 @@ PulseAudioBackend::main_process_thread ()
 
 		bool connections_changed = false;
 		bool ports_changed       = false;
-		if (!pthread_mutex_trylock (&_port_callback_mutex)) {
+		if (_port_callback_mutex.try_lock()) {
 			int canderef (1);
 			if (_port_change_flag.compare_exchange_strong (canderef, 0)) {
 				ports_changed = true;
@@ -1063,7 +1063,7 @@ PulseAudioBackend::main_process_thread ()
 				connections_changed = true;
 			}
 			process_connection_queue_locked (manager);
-			pthread_mutex_unlock (&_port_callback_mutex);
+			_port_callback_mutex.unlock();
 		}
 		if (ports_changed) {
 			manager.registration_callback ();

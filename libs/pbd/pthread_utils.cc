@@ -49,7 +49,7 @@ using namespace std;
 
 typedef std::list<pthread_t>        ThreadMap;
 static ThreadMap                    all_threads;
-static pthread_mutex_t              thread_map_lock = PTHREAD_MUTEX_INITIALIZER;
+static std::mutex              thread_map_lock;
 static Glib::Threads::Private<char> thread_name (free);
 
 namespace PBD
@@ -101,7 +101,7 @@ fake_thread_start (void* arg)
 	void* ret = thread_work (thread_arg);
 
 	/* cleanup */
-	pthread_mutex_lock (&thread_map_lock);
+	thread_map_lock.lock();
 
 	for (ThreadMap::iterator i = all_threads.begin (); i != all_threads.end (); ++i) {
 		if (pthread_equal ((*i), pthread_self ())) {
@@ -110,7 +110,7 @@ fake_thread_start (void* arg)
 		}
 	}
 
-	pthread_mutex_unlock (&thread_map_lock);
+	thread_map_lock.unlock();
 
 	/* done */
 	return ret;
@@ -131,9 +131,9 @@ pthread_create_and_store (string name, pthread_t* thread, void* (*start_routine)
 	ThreadStartWithName* ts = new ThreadStartWithName (start_routine, arg, name);
 
 	if ((ret = pthread_create (thread, &default_attr, fake_thread_start, ts)) == 0) {
-		pthread_mutex_lock (&thread_map_lock);
+		thread_map_lock.lock();
 		all_threads.push_back (*thread);
-		pthread_mutex_unlock (&thread_map_lock);
+		thread_map_lock.unlock();
 	}
 
 	pthread_attr_destroy (&default_attr);
@@ -170,20 +170,20 @@ pthread_name ()
 void
 pthread_kill_all (int signum)
 {
-	pthread_mutex_lock (&thread_map_lock);
+	thread_map_lock.lock();
 	for (ThreadMap::iterator i = all_threads.begin (); i != all_threads.end (); ++i) {
 		if (!pthread_equal ((*i), pthread_self ())) {
 			pthread_kill ((*i), signum);
 		}
 	}
 	all_threads.clear ();
-	pthread_mutex_unlock (&thread_map_lock);
+	thread_map_lock.unlock();
 }
 
 void
 pthread_cancel_all ()
 {
-	pthread_mutex_lock (&thread_map_lock);
+	thread_map_lock.lock();
 
 	for (ThreadMap::iterator i = all_threads.begin (); i != all_threads.end ();) {
 		ThreadMap::iterator nxt = i;
@@ -196,13 +196,13 @@ pthread_cancel_all ()
 		i = nxt;
 	}
 	all_threads.clear ();
-	pthread_mutex_unlock (&thread_map_lock);
+	thread_map_lock.unlock();
 }
 
 void
 pthread_cancel_one (pthread_t thread)
 {
-	pthread_mutex_lock (&thread_map_lock);
+	thread_map_lock.lock();
 	for (ThreadMap::iterator i = all_threads.begin (); i != all_threads.end (); ++i) {
 		if (pthread_equal ((*i), thread)) {
 			all_threads.erase (i);
@@ -211,7 +211,7 @@ pthread_cancel_one (pthread_t thread)
 	}
 
 	pthread_cancel (thread);
-	pthread_mutex_unlock (&thread_map_lock);
+	thread_map_lock.unlock();
 }
 
 static size_t
