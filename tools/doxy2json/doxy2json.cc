@@ -37,7 +37,7 @@ struct Dox2jsConfig {
 		clang_argv = (char**) malloc (clang_argc * sizeof (char*));
 		clang_argv[0] = strdup ("-x");
 		clang_argv[1] = strdup ("c++");
-		clang_argv[2] = strdup ("-std=c++11");
+		clang_argv[2] = strdup ("-std=c++14");
 	}
 
 	~Dox2jsConfig () {

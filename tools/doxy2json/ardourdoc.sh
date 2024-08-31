@@ -24,7 +24,7 @@ time nice ./tools/doxy2json/doxy2json -j 8 \
 	-I libs/libltc/ltc -I libs/evoral -I libs/canvas -I libs/gtkmm2ext -I libs/midi++2 -I libs/surfaces/control_protocol \
 	-I libs/zita-resampler -I libs/fluidsynth/fluidsynth -I libs/waveview -I libs/widgets \
 	-I libs -I build/libs/pbd -I build/libs/ardour -I build/gtk2_ardour \
-	`pkg-config --cflags glib-2.0 glibmm-2.4 cairomm-1.0 gtkmm-2.4 libxml-2.0 lilv-0 suil-0 raptor2 | sed 's/-std=c++11 //;s/-pthread //'` \
+	`pkg-config --cflags glib-2.0 glibmm-2.4 cairomm-1.0 gtkmm-2.4 libxml-2.0 lilv-0 suil-0 raptor2 | sed 's/-std=c++14 //;s/-pthread //'` \
 	-X "_" -X "::" -X "sigc" -X "Atk::" -X "Gdk::" -X "Gtk::" -X "Gio::" \
 	-X "Glib::" -X "Pango::" -X "luabridge::" \
 	\
