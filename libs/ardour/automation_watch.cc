@@ -20,6 +20,7 @@
  */
 
 #include <iostream>
+#include <thread>
 
 #include <glibmm/timer.h>
 
@@ -204,7 +205,7 @@ AutomationWatch::thread ()
 	pbd_set_thread_priority (pthread_self(), PBD_SCHED_FIFO, AudioEngine::instance()->client_real_time_priority() - 2); // XXX
 	pthread_set_name ("AutomationWatch");
 	while (_run_thread) {
-		Glib::usleep ((gulong) floor (Config->get_automation_interval_msecs() * 1000)); // TODO use pthread_cond_timedwait on _run_thread
+		std::this_thread::sleep_for (std::chrono::duration<float, std::milli>(Config->get_automation_interval_msecs())); // TODO use pthread_cond_timedwait on _run_thread
 		timer ();
 	}
 }

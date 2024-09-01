@@ -19,6 +19,7 @@
 #ifndef __ardour_transport_master_h__
 #define __ardour_transport_master_h__
 
+#include <thread>
 #include <vector>
 
 #include <boost/atomic.hpp>
@@ -122,7 +123,7 @@ struct LIBARDOUR_API SafeTime {
 		do {
 			if (tries == 10) {
 				std::cerr << "SafeTime: atomic read of current time failed, sleeping!" << std::endl;
-				Glib::usleep (20);
+				std::this_thread::sleep_for (std::chrono::microseconds(20));
 				tries = 0;
 			}
 			dst.guard1.store (guard1.load (boost::memory_order_seq_cst), boost::memory_order_seq_cst);
