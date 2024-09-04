@@ -6025,17 +6025,17 @@ out:
 	config.set_audio_search_path (old_config_search_path[DataType::AUDIO]);
 	config.set_midi_search_path (old_config_search_path[DataType::MIDI]);
 
-	for (std::map<std::shared_ptr<AudioFileSource>, std::string>::iterator i = orig_origin.begin (); i != orig_origin.end (); ++i) {
-		i->first->set_origin (i->second);
+	for (std::pair<const std::shared_ptr<AudioFileSource>, std::string>& i : orig_origin) {
+		i.first->set_origin (i.second);
 	}
-	for (std::map<std::shared_ptr<AudioFileSource>, std::string>::iterator i = orig_sources.begin (); i != orig_sources.end (); ++i) {
-		i->first->replace_file (i->second);
+	for (std::pair<const std::shared_ptr<AudioFileSource>, std::string>& i : orig_sources) {
+		i.first->replace_file (i.second);
 	}
-	for (std::map<std::shared_ptr<AudioFileSource>, float>::iterator i = orig_gain.begin (); i != orig_gain.end (); ++i) {
-		i->first->set_gain (i->second, true);
+	for (std::pair<const std::shared_ptr<AudioFileSource>, float>& i : orig_gain) {
+		i.first->set_gain (i.second, true);
 	}
-	for (std::map<std::shared_ptr<AudioFileSource>, uint16_t>::iterator i = orig_channel.begin (); i != orig_channel.end (); ++i) {
-		i->first->set_channel (i->second);
+	for (std::pair<const std::shared_ptr<AudioFileSource>, uint16_t>& i : orig_channel) {
+		i.first->set_channel (i.second);
 	}
 
 	if (0 == rv && !(progress && progress->cancelled ())) {

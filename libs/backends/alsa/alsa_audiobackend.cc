@@ -1285,16 +1285,13 @@ AlsaAudioBackend::auto_update_midi_devices ()
 		set_midi_device_enabled (i->first, true);
 	}
 
-	for (std::map<std::string, struct AlsaMidiDeviceInfo*>::iterator i = _midi_devices.begin (); i != _midi_devices.end ();) {
+	for (std::map<std::string, AlsaMidiDeviceInfo*>::iterator i = _midi_devices.begin (); i != _midi_devices.end ();) {
 		if (devices.find (i->first) != devices.end ()) {
 			++i;
 			continue;
 		}
 		set_midi_device_enabled (i->first, false);
-		std::map<std::string, struct AlsaMidiDeviceInfo*>::iterator tmp = i;
-		++tmp;
-		_midi_devices.erase (i);
-		i = tmp;
+		i = _midi_devices.erase (i);
 	}
 }
 

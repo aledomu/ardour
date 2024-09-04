@@ -919,9 +919,8 @@ SimilarityPlugin::getRemainingFeatures()
     feature.values.clear();
     feature.timestamp = Vamp::RealTime(0, 0);
 
-    for (std::map<double, int>::iterator i = sorted.begin();
-         i != sorted.end(); ++i) {
-        feature.values.push_back(i->second + 1);
+    for (std::pair<const double, int>& i : sorted) {
+        feature.values.push_back(i.second + 1);
     }
 
     returnFeatures[m_sortedVectorOutput].push_back(feature);
@@ -930,9 +929,8 @@ SimilarityPlugin::getRemainingFeatures()
     feature.values.clear();
     feature.timestamp = Vamp::RealTime(1, 0);
 
-    for (std::map<double, int>::iterator i = sorted.begin();
-         i != sorted.end(); ++i) {
-        feature.values.push_back(i->first);
+    for (std::pair<const double, int>& i : sorted) {
+        feature.values.push_back(i.first);
     }
 
     returnFeatures[m_sortedVectorOutput].push_back(feature);

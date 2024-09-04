@@ -72,11 +72,8 @@ ConstStringTable::~ConstStringTable ()
 {
 	// free out allocated strings
 	{
-		std::map<const char8*, char16*>::iterator iter = stringMap->begin ();
-		while (iter != stringMap->end ())
-		{
-			delete[] iter->second;
-			iter++;
+		for (std::pair<const char8* const, char16*>& iter : *stringMap) {
+			delete[] iter.second;
 		}
 	} // delete iterator on map before deleting the map
 

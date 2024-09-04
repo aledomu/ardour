@@ -39,10 +39,8 @@ template<class T> /*LIBPBD_API*/ void vector_delete (std::vector<T *> *vec)
 #if defined(_CPP_MAP) || defined(_GLIBCXX_MAP) || defined(__SGI_STL_MAP)
 template<class K, class T> /*LIBPBD_API*/ void map_delete (std::map<K, T *> *m)
 {
-	typename std::map<K, T *>::iterator i;
-
-	for (i = m->begin(); i != m->end(); i++) {
-		delete (*i).second;
+	for (std::pair<const K, T *>& i : *m) {
+		delete i.second;
 	}
 	m->clear ();
 }
