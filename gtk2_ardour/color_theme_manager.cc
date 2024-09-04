@@ -74,13 +74,13 @@ ColorThemeManager::ColorThemeManager ()
 
 		TreeModel::iterator selected_iter = theme_list->children().end();
 
-		for (std::map<string,string>::iterator c = color_themes.begin(); c != color_themes.end(); ++c) {
+		for (std::pair<const string,string>& c : color_themes) {
 			TreeModel::Row row;
 
 			row = *(theme_list->append());
-			row[color_theme_columns.name] = c->first;
+			row[color_theme_columns.name] = c.first;
 
-			string color_file_name = c->second;
+			string color_file_name = c.second;
 
 			row[color_theme_columns.path] = color_file_name;
 

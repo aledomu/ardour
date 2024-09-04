@@ -451,8 +451,8 @@ public:
 
 		vector<string> strs;
 
-		for (map<string,string>::iterator bf = Keyboard::binding_files.begin(); bf != Keyboard::binding_files.end(); ++bf) {
-			strs.push_back (bf->first);
+		for (std::pair<const string,string>& bf : Keyboard::binding_files) {
+			strs.push_back (bf.first);
 		}
 
 		set_popdown_strings (_keyboard_layout_selector, strs);
@@ -849,9 +849,9 @@ private:
 
 		/* XXX: config...?  for all this keyboard stuff */
 
-		for (map<string,string>::iterator i = Keyboard::binding_files.begin(); i != Keyboard::binding_files.end(); ++i) {
-			if (txt == i->first) {
-				if (Keyboard::load_keybindings (i->second)) {
+		for (std::pair<const string,string>& i : Keyboard::binding_files) {
+			if (txt == i.first) {
+				if (Keyboard::load_keybindings (i.second)) {
 					Keyboard::save_keybindings ();
 				}
 			}

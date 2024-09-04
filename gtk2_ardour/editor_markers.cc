@@ -414,8 +414,8 @@ Editor::update_all_marker_lanes ()
 void
 Editor::update_marker_labels ()
 {
-	for (std::map<ArdourCanvas::Item *, std::list<ArdourMarker *> >::iterator i = _sorted_marker_lists.begin(); i != _sorted_marker_lists.end(); ++i) {
-		update_marker_labels (i->first);
+	for (std::pair<ArdourCanvas::Item * const, std::list<ArdourMarker *> >& i : _sorted_marker_lists) {
+		update_marker_labels (i.first);
 	}
 }
 
@@ -2041,8 +2041,8 @@ Editor::toggle_marker_lines ()
 void
 Editor::remove_sorted_marker (ArdourMarker* m)
 {
-	for (std::map<ArdourCanvas::Item *, std::list<ArdourMarker *> >::iterator i = _sorted_marker_lists.begin(); i != _sorted_marker_lists.end(); ++i) {
-		i->second.remove (m);
+	for (std::pair<ArdourCanvas::Item * const, std::list<ArdourMarker *> >& i : _sorted_marker_lists) {
+		i.second.remove (m);
 	}
 }
 

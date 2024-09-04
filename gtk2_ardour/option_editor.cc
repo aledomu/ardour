@@ -833,11 +833,11 @@ OptionEditor::OptionEditor (PBD::Configuration* c)
 
 OptionEditor::~OptionEditor ()
 {
-	for (std::map<std::string, OptionEditorPage*>::iterator i = _pages.begin(); i != _pages.end(); ++i) {
-		for (std::list<OptionEditorComponent*>::iterator j = i->second->components.begin(); j != i->second->components.end(); ++j) {
+	for (std::pair<const std::string, OptionEditorPage*>& i : _pages) {
+		for (std::list<OptionEditorComponent*>::iterator j = i.second->components.begin(); j != i.second->components.end(); ++j) {
 			delete *j;
 		}
-		delete i->second;
+		delete i.second;
 	}
 }
 
@@ -1014,8 +1014,8 @@ OptionEditor::parameter_changed (std::string const & p)
 {
 	ENSURE_GUI_THREAD (*this, &OptionEditor::parameter_changed, p)
 
-	for (std::map<std::string, OptionEditorPage*>::iterator i = _pages.begin(); i != _pages.end(); ++i) {
-		for (std::list<OptionEditorComponent*>::iterator j = i->second->components.begin(); j != i->second->components.end(); ++j) {
+	for (std::pair<const std::string, OptionEditorPage*>& i : _pages) {
+		for (std::list<OptionEditorComponent*>::iterator j = i.second->components.begin(); j != i.second->components.end(); ++j) {
 			(*j)->parameter_changed (p);
 		}
 	}
