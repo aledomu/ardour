@@ -78,8 +78,8 @@ ArdourFader::~ArdourFader ()
 
 void
 ArdourFader::flush_pattern_cache () {
-	for (list<FaderImage*>::iterator f = _patterns.begin(); f != _patterns.end(); ++f) {
-		cairo_pattern_destroy ((*f)->pattern);
+	for (FaderImage*& f : _patterns) {
+		cairo_pattern_destroy (f->pattern);
 	}
 	_patterns.clear();
 }
@@ -89,9 +89,9 @@ ArdourFader::find_pattern (double afr, double afg, double afb,
 			double abr, double abg, double abb,
 			int w, int h)
 {
-	for (list<FaderImage*>::iterator f = _patterns.begin(); f != _patterns.end(); ++f) {
-		if ((*f)->matches (afr, afg, afb, abr, abg, abb, w, h)) {
-			return (*f)->pattern;
+	for (FaderImage*& f : _patterns) {
+		if (f->matches (afr, afg, afb, abr, abg, abb, w, h)) {
+			return f->pattern;
 		}
 	}
 	return 0;

@@ -275,11 +275,11 @@ GroupTest::torture_add_items_at_point ()
 			items_B.push_back (canvas.root());
 		}
 
-		for (list<Item*>::iterator j = rectangles.begin(); j != rectangles.end(); ++j) {
-			boost::optional<Rect> bbox = (*j)->bounding_box ();
+		for (Item*& j : rectangles) {
+			boost::optional<Rect> bbox = j->bounding_box ();
 			assert (bbox);
 			if (bbox.get().contains (test)) {
-				items_B.push_back (*j);
+				items_B.push_back (j);
 			}
 		}
 

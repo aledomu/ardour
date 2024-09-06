@@ -718,8 +718,8 @@ public:
 	PBD::Signal0<void>             route_groups_reordered;
 
 	void foreach_route_group (boost::function<void(RouteGroup*)> f) {
-		for (std::list<RouteGroup *>::iterator i = _route_groups.begin(); i != _route_groups.end(); ++i) {
-			f (*i);
+		for (RouteGroup *& i : _route_groups) {
+			f (i);
 		}
 	}
 

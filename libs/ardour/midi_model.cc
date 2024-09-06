@@ -705,8 +705,8 @@ MidiModel::SysExDiffCommand::operator() ()
 	{
 		MidiModel::WriteLock lock (_model->edit_lock ());
 
-		for (list<SysExPtr>::iterator i = _removed.begin(); i != _removed.end(); ++i) {
-			_model->remove_sysex_unlocked (*i);
+		for (SysExPtr& i : _removed) {
+			_model->remove_sysex_unlocked (i);
 		}
 
 		/* find any sysex events that were missing when unmarshalling */
@@ -735,8 +735,8 @@ MidiModel::SysExDiffCommand::undo ()
 	{
 		MidiModel::WriteLock lock (_model->edit_lock ());
 
-		for (list<SysExPtr>::iterator i = _removed.begin(); i != _removed.end(); ++i) {
-			_model->add_sysex_unlocked (*i);
+		for (SysExPtr& i : _removed) {
+			_model->add_sysex_unlocked (i);
 		}
 
 		/* find any sysex events that were missing when unmarshalling */
@@ -937,12 +937,12 @@ MidiModel::PatchChangeDiffCommand::operator() ()
 	{
 		MidiModel::WriteLock lock (_model->edit_lock ());
 
-		for (list<PatchChangePtr>::iterator i = _added.begin(); i != _added.end(); ++i) {
-			_model->add_patch_change_unlocked (*i);
+		for (PatchChangePtr& i : _added) {
+			_model->add_patch_change_unlocked (i);
 		}
 
-		for (list<PatchChangePtr>::iterator i = _removed.begin(); i != _removed.end(); ++i) {
-			_model->remove_patch_change_unlocked (*i);
+		for (PatchChangePtr& i : _removed) {
+			_model->remove_patch_change_unlocked (i);
 		}
 
 		/* find any patch change events that were missing when unmarshalling */
@@ -994,12 +994,12 @@ MidiModel::PatchChangeDiffCommand::undo ()
 	{
 		MidiModel::WriteLock lock (_model->edit_lock());
 
-		for (list<PatchChangePtr>::iterator i = _added.begin(); i != _added.end(); ++i) {
-			_model->remove_patch_change_unlocked (*i);
+		for (PatchChangePtr& i : _added) {
+			_model->remove_patch_change_unlocked (i);
 		}
 
-		for (list<PatchChangePtr>::iterator i = _removed.begin(); i != _removed.end(); ++i) {
-			_model->add_patch_change_unlocked (*i);
+		for (PatchChangePtr& i : _removed) {
+			_model->add_patch_change_unlocked (i);
 		}
 
 		/* find any patch change events that were missing when unmarshalling */
