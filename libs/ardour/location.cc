@@ -1609,11 +1609,13 @@ Locations::marks_either_side (timepos_t const & pos, timepos_t& before, timepos_
 
 	positions.sort ();
 
-	std::list<timepos_t>::iterator i = positions.begin ();
-
-	while (i != positions.end () && *i < pos) {
-		++i;
-	}
+	std::list<timepos_t>::iterator i = std::find_if(
+		positions.begin (),
+		positions.end (),
+		[&] (const auto& p) {
+			return p >= pos;
+		}
+	);
 
 	if (i == positions.end ()) {
 		/* run out of marks */

@@ -675,16 +675,15 @@ Item::set_size_request_to_display_given_text (std::vector<std::string> strings, 
 	int width_max = 0;
 	int height_max = 0;
 
-	vector<string>::const_iterator i;
-
-	for (i = strings.begin(); i != strings.end(); ++i) {
-		if ((*i).find_first_of ("gy") != string::npos) {
-			/* contains a descender */
-			break;
+	vector<string>::const_iterator i = std::find_if(
+		strings.cbegin(),
+		strings.cend(),
+		[&] (const string& s) {
+			return s.find_first_of ("gy") != string::npos;
 		}
-	}
+	);
 
-	if (i == strings.end()) {
+	if (i == strings.cend()) {
 		/* Add a string that has a descender */
 		strings.push_back ("g");
 	}

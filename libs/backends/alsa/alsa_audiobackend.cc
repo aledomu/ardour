@@ -306,20 +306,16 @@ AlsaAudioBackend::set_input_device_name (const std::string& d)
 		_input_audio_device_info.valid = false;
 		return 0;
 	}
-	std::string alsa_device;
-	std::map<std::string, std::string> devices;
 
+	std::map<std::string, std::string> devices;
 	get_alsa_audio_device_names (devices, HalfDuplexIn);
-	for (const std::pair<const std::string, std::string>& i : devices) {
-		if (i.first == d) {
-			alsa_device = i.second;
-			break;
-		}
-	}
-	if (alsa_device == "") {
+	std::map<std::string, std::string>::const_iterator alsa_device_it = devices.find(d);
+
+	if (alsa_device_it == devices.cend ()) {
 		_input_audio_device_info.valid = false;
 		return 1;
 	}
+	const std::string& alsa_device = alsa_device_it->second;
 	AlsaDeviceReservation adr (alsa_device.c_str ());
 	/* device will be busy once used, hence cache the parameters */
 	/* return */ get_alsa_device_parameters (alsa_device.c_str (), false, &_input_audio_device_info);
@@ -339,20 +335,16 @@ AlsaAudioBackend::set_output_device_name (const std::string& d)
 		_output_audio_device_info.valid = false;
 		return 0;
 	}
-	std::string alsa_device;
-	std::map<std::string, std::string> devices;
 
+	std::map<std::string, std::string> devices;
 	get_alsa_audio_device_names (devices, HalfDuplexOut);
-	for (const std::pair<const std::string, std::string>& i : devices) {
-		if (i.first == d) {
-			alsa_device = i.second;
-			break;
-		}
-	}
-	if (alsa_device == "") {
+	std::map<std::string, std::string>::const_iterator alsa_device_it = devices.find(d);
+
+	if (alsa_device_it == devices.cend ()) {
 		_output_audio_device_info.valid = false;
 		return 1;
 	}
+	const std::string& alsa_device = alsa_device_it->second;
 	AlsaDeviceReservation adr (alsa_device.c_str ());
 	/* return */ get_alsa_device_parameters (alsa_device.c_str (), true, &_output_audio_device_info);
 	return 0;
@@ -606,10 +598,9 @@ AlsaAudioBackend::systemic_midi_output_latency (std::string const device) const
 struct AlsaAudioBackend::AlsaMidiDeviceInfo*
 AlsaAudioBackend::midi_device_info (std::string const name) const
 {
-	for (const std::pair<const std::string, AlsaMidiDeviceInfo*>& i : _midi_devices) {
-		if (i.first == name) {
-			return (i.second);
-		}
+	std::map<std::string, AlsaMidiDeviceInfo*>::const_iterator md = _midi_devices.find (name);
+	if (md != _midi_devices.cend ()) {
+		return md->second;
 	}
 
 	assert (_midi_driver_option != get_standard_device_name (DeviceNone));
@@ -621,11 +612,10 @@ AlsaAudioBackend::midi_device_info (std::string const name) const
 		get_alsa_sequencer_names (devices);
 	}
 
-	for (const std::pair<const std::string, std::string>& i : devices) {
-		if (i.first == name) {
-			_midi_devices[name] = new AlsaMidiDeviceInfo ();
-			return _midi_devices[name];
-		}
+	std::map<std::string, std::string>::const_iterator d = devices.find (name);
+	if (d != devices.cend ()) {
+		_midi_devices[name] = new AlsaMidiDeviceInfo ();
+		return _midi_devices[name];
 	}
 	return 0;
 }
@@ -653,9 +643,14 @@ AlsaAudioBackend::enumerate_midi_devices () const
 		get_alsa_sequencer_names (devices);
 	}
 
-	for (const std::pair<const std::string, std::string>& i : devices) {
-		_midi_device_status.push_back (DeviceStatus (i.first, true));
-	}
+	static_cast<void> (std::transform (
+		devices.cbegin (),
+		devices.cend (),
+		_midi_device_status.begin (),
+		[] (const std::pair<const std::string, std::string>& i) {
+			return DeviceStatus (i.first, true);
+		}
+	));
 	return _midi_device_status;
 }
 

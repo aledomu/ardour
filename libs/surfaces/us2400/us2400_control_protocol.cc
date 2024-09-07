@@ -654,12 +654,9 @@ US2400Protocol::set_profile (const string& profile_name)
 {
 	map<string,DeviceProfile>::iterator d = DeviceProfile::device_profiles.find (profile_name);
 
-	if (d == DeviceProfile::device_profiles.end()) {
-		_device_profile = DeviceProfile (profile_name);
-		return;
-	}
-
-	_device_profile = d->second;
+	_device_profile = d == DeviceProfile::device_profiles.end()
+		? DeviceProfile (profile_name)
+		: d->second;
 }
 
 int

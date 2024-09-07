@@ -429,10 +429,13 @@ RegionFactory::rename_in_region_name_maps (std::shared_ptr<Region> region)
 
 	Glib::Threads::Mutex::Lock lm (region_name_maps_mutex);
 
-	map<string, PBD::ID>::iterator i = region_name_map.begin ();
-	while (i != region_name_map.end () && i->second != region->id ()) {
-		++i;
-	}
+	map<string, PBD::ID>::iterator i = std::find_if (
+		region_name_map.begin (),
+		region_name_map.end (),
+		[&] (auto& region_name) {
+			return region_name.second == region->id ();
+		}
+	);
 
 	/* Erase the entry for the old name and put in a new one */
 	if (i != region_name_map.end ()) {

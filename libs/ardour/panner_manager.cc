@@ -113,13 +113,13 @@ PannerManager::panner_discover (string path)
 
 	if ((pinfo = get_descriptor (path)) != 0) {
 
-		list<PannerInfo*>::iterator i;
-
-		for (i = panner_info.begin(); i != panner_info.end(); ++i) {
-			if (pinfo->descriptor.name == (*i)->descriptor.name) {
-				break;
+		list<PannerInfo*>::iterator i = std::find_if(
+			panner_info.begin(),
+			panner_info.end(),
+			[&] (const auto& pi) {
+				return pi->descriptor.name == pinfo->descriptor.name;
 			}
-		}
+		);
 
 		if (i == panner_info.end()) {
 			panner_info.push_back (pinfo);

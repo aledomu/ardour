@@ -12,6 +12,7 @@
     COPYING included with this distribution for more information.
  */
 
+#include <algorithm>
 #include <iostream>
 #include <cstdio>
 
@@ -919,9 +920,12 @@ SimilarityPlugin::getRemainingFeatures()
     feature.values.clear();
     feature.timestamp = Vamp::RealTime(0, 0);
 
-    for (std::pair<const double, int>& i : sorted) {
-        feature.values.push_back(i.second + 1);
-    }
+    static_cast<void>(std::transform(
+        sorted.cbegin(),
+        sorted.cend(),
+        feature.values.begin(),
+        [] (const std::pair<const double, int>& i) { return i.second + 1; }
+    ));
 
     returnFeatures[m_sortedVectorOutput].push_back(feature);
 
@@ -929,9 +933,12 @@ SimilarityPlugin::getRemainingFeatures()
     feature.values.clear();
     feature.timestamp = Vamp::RealTime(1, 0);
 
-    for (std::pair<const double, int>& i : sorted) {
-        feature.values.push_back(i.first);
-    }
+    static_cast<void>(std::transform(
+        sorted.cbegin(),
+        sorted.cend(),
+        feature.values.begin(),
+        [] (const std::pair<const double, int>& i) { return i.first; }
+    ));
 
     returnFeatures[m_sortedVectorOutput].push_back(feature);
 
